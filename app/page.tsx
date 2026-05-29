@@ -3,22 +3,31 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase'; // 구단주님의 기존 utils 폴더 경로 유지
 
 interface Player { id: number; name: string; position: string; }
-interface MatchData { id: number; home_team?: string; away_team?: string; home_score: number; away_score: number; home_logo?: string; away_logo?: string; date?: string; recent_form?: string; }
+interface MatchData { 
+  id: number; 
+  home_team?: string; 
+  away_team?: string; 
+  home_score: number; 
+  away_score: number; 
+  home_logo?: string; 
+  away_logo?: string; 
+  date?: string; 
+  recent_form?: string;
+  is_practice: boolean; // 💡 연습 경기 상태 타입 정의 반영
+}
 
 export default function Home() {
-  // 💡 탭 상태 관리 및 입력 폼 State (이메일, 연락처 확장 반영)
   const [activeTab, setActiveTab] = useState<'inquiry' | 'join'>('inquiry');
   const [players, setPlayers] = useState<Player[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
   const [matchLoading, setMatchLoading] = useState<boolean>(true);
   
   const [senderName, setSenderName] = useState('');
-  const [email, setEmail] = useState('');      // 💡 추가
-  const [phone, setPhone] = useState('');      // 💡 추가
+  const [email, setEmail] = useState('');      
+  const [phone, setPhone] = useState('');      
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 기존 선수 및 매치 데이터 fetch 로직 유지
   useEffect(() => {
     const fetchPlayers = async () => {
       const { data, error } = await supabase.from('players').select('*');
@@ -41,7 +50,6 @@ export default function Home() {
     fetchMatchData();
   }, []);
 
-  // 💡 [개선] Supabase DB 저장 및 이메일 클라이언트 앱 동시 호출 함수
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!senderName.trim() || !email.trim() || !phone.trim() || !content.trim()) {
@@ -51,7 +59,6 @@ export default function Home() {
     try {
       setIsSubmitting(true);
 
-      // 1. Supabase 'messages' 테이블에 데이터 적재 (어드민 연동)
       const { error } = await supabase
         .from('messages')
         .insert([
@@ -67,8 +74,7 @@ export default function Home() {
         return;
       }
 
-      // 2. 계비 UTD 공식 메일 주소로 이메일 앱(mailto:) 연결 동작 트리거
-      const targetEmail = 'gyebi-utd@email.com'; // 💡 실제 수신용 이메일 주소 기입 가능
+      const targetEmail = 'gyebi-utd@email.com'; 
       const subject = encodeURIComponent(`[${activeTab === 'join' ? '참가 신청' : '팀 문의'}] 계비 UTD ${senderName}님의 메시지`);
       const body = encodeURIComponent(
         `이름: ${senderName}\n이메일: ${email}\n연락처: ${phone}\n\n내용:\n${content}`
@@ -78,7 +84,6 @@ export default function Home() {
 
       alert('계비 UTD 구단 데이터베이스에 접수되었으며, 이메일 전송 창으로 이동합니다! 🔥');
       
-      // 폼 초기화
       setSenderName('');
       setEmail('');
       setPhone('');
@@ -145,10 +150,18 @@ export default function Home() {
         )}
       </section>
 
-      {/* 4. 매치 스코어 보드 */}
+      {/* 4. 매치 스코어 보드 (💡 연습 경기 조건부 뱃지 디자인 반영) */}
       <section className="max-w-md mx-auto px-4 mb-16">
         <h2 className="text-xl font-bold flex justify-center items-center gap-2 mb-4">📊 최근 경기 결과</h2>
-        <div className="bg-[#36101b] rounded-2xl border border-white/5 shadow-lg overflow-hidden mb-6">
+        <div className="relative bg-[#36101b] rounded-2xl border border-white/5 shadow-lg overflow-hidden mb-6">
+          
+          {/* 💡 [연습 경기 뱃지] 데이터베이스의 is_practice 속성이 true일 때만 노출되는 레이어 마크 */}
+          {!matchLoading && match?.is_practice && (
+            <div className="absolute top-2.5 left-3 text-[9px] font-black tracking-widest bg-gradient-to-r from-amber-500 to-amber-600 text-black px-2 py-0.5 rounded shadow border border-amber-400/20 z-10 animate-fade-in">
+              연습 경기 ⚽
+            </div>
+          )}
+
           <div className="bg-black/20 text-center py-2 text-[11px] font-semibold text-gray-400 tracking-wider border-b border-white/5">
             {displayDate}
           </div>
@@ -181,11 +194,10 @@ export default function Home() {
         </div>
       </section>
       
-      {/* 5. 연락하기 문의 폼 구역 (💡 스크린샷 탭 및 인풋 추가 완벽 이식) */}
+      {/* 5. 연락하기 문의 폼 구역 */}
       <section className="max-w-md mx-auto px-4 mb-16">
         <h2 className="text-xl font-bold flex justify-center items-center gap-2 mb-4">✉️ 연락하기</h2>
         
-        {/* 💡 탭 선택 스위치 버튼 추가 */}
         <div className="grid grid-cols-2 bg-black/20 rounded-xl p-1 mb-4 border border-white/5">
           <button
             type="button"
@@ -207,7 +219,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 확장된 연락하기 양식 본체 */}
         <form onSubmit={handleSendMessage} className="bg-[#36101b] rounded-2xl p-6 border border-white/5 shadow-lg space-y-4">
           <div>
             <label className="block text-xs text-gray-300 mb-1">이름 *</label>
@@ -240,7 +251,7 @@ export default function Home() {
         </form>
       </section>
 
-      {/* 6. 푸터 구역 (💡 스크린샷 푸터 레이아웃 이식) */}
+      {/* 6. 푸터 구역 */}
       <footer className="max-w-md mx-auto text-center px-4 mt-8 space-y-4">
         <div className="flex items-center justify-center gap-2 text-gray-300">
           <span className="text-xl">🛡️</span> 
