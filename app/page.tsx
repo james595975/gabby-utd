@@ -1,20 +1,24 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/utils/supabase';
+import { supabase } from '@/utils/supabase'; // 구단주님의 기존 utils 폴더 경로 유지
 
 interface Player { id: number; name: string; position: string; }
 interface MatchData { id: number; home_team?: string; away_team?: string; home_score: number; away_score: number; home_logo?: string; away_logo?: string; date?: string; recent_form?: string; }
 
 export default function Home() {
+  // 💡 탭 상태 관리 및 입력 폼 State (이메일, 연락처 확장 반영)
   const [activeTab, setActiveTab] = useState<'inquiry' | 'join'>('inquiry');
   const [players, setPlayers] = useState<Player[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
   const [matchLoading, setMatchLoading] = useState<boolean>(true);
   
   const [senderName, setSenderName] = useState('');
+  const [email, setEmail] = useState('');      // 💡 추가
+  const [phone, setPhone] = useState('');      // 💡 추가
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 기존 선수 및 매치 데이터 fetch 로직 유지
   useEffect(() => {
     const fetchPlayers = async () => {
       const { data, error } = await supabase.from('players').select('*');
@@ -37,17 +41,52 @@ export default function Home() {
     fetchMatchData();
   }, []);
 
+  // 💡 [개선] Supabase DB 저장 및 이메일 클라이언트 앱 동시 호출 함수
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!senderName.trim() || !content.trim()) return alert('이름과 내용을 모두 입력해 주세요.');
-    setIsSubmitting(true);
-    const { error } = await supabase.from('messages').insert([{ type: activeTab, name: senderName, content: content }]);
-    setIsSubmitting(false);
-    if (error) {
-      alert('전송에 실패했습니다: ' + error.message);
-    } else {
-      alert('계비 UTD 구단주에게 메시지가 성공적으로 전송되었습니다! 🔥');
-      setSenderName(''); setContent('');
+    if (!senderName.trim() || !email.trim() || !phone.trim() || !content.trim()) {
+      return alert('필수 항목(*)을 모두 입력해 주세요.');
+    }
+    
+    try {
+      setIsSubmitting(true);
+
+      // 1. Supabase 'messages' 테이블에 데이터 적재 (어드민 연동)
+      const { error } = await supabase
+        .from('messages')
+        .insert([
+          { 
+            type: activeTab, 
+            name: senderName.trim(), 
+            content: `[이메일: ${email.trim()} / 연락처: ${phone.trim()}]\n\n내용:\n${content.trim()}` 
+          }
+        ]);
+
+      if (error) {
+        alert('데이터베이스 전송에 실패했습니다: ' + error.message);
+        return;
+      }
+
+      // 2. 계비 UTD 공식 메일 주소로 이메일 앱(mailto:) 연결 동작 트리거
+      const targetEmail = 'gyebi-utd@email.com'; // 💡 실제 수신용 이메일 주소 기입 가능
+      const subject = encodeURIComponent(`[${activeTab === 'join' ? '참가 신청' : '팀 문의'}] 계비 UTD ${senderName}님의 메시지`);
+      const body = encodeURIComponent(
+        `이름: ${senderName}\n이메일: ${email}\n연락처: ${phone}\n\n내용:\n${content}`
+      );
+      
+      window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+
+      alert('계비 UTD 구단 데이터베이스에 접수되었으며, 이메일 전송 창으로 이동합니다! 🔥');
+      
+      // 폼 초기화
+      setSenderName('');
+      setEmail('');
+      setPhone('');
+      setContent('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -61,7 +100,7 @@ export default function Home() {
   const awayLogoUrl = match?.away_logo ? match.away_logo.trim() : '';
 
   return (
-    <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased">
+    <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-12">
       
       {/* 1. 히어로 구역 */}
       <section className="flex flex-col items-center justify-center text-center pt-20 pb-16 px-4">
@@ -142,17 +181,89 @@ export default function Home() {
         </div>
       </section>
       
-      {/* 5. 연락하기 문의 폼 */}
-      <section className="max-w-md mx-auto px-4 pb-20">
+      {/* 5. 연락하기 문의 폼 구역 (💡 스크린샷 탭 및 인풋 추가 완벽 이식) */}
+      <section className="max-w-md mx-auto px-4 mb-16">
         <h2 className="text-xl font-bold flex justify-center items-center gap-2 mb-4">✉️ 연락하기</h2>
-        <form onSubmit={handleSendMessage} className="bg-[#36101b] rounded-2xl p-6 border border-white/5 shadow-lg space-y-4">
-          <input type="text" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="이름 또는 팀명 *" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" />
-          <textarea rows={4} value={content} onChange={(e) => setContent(e.target.value)} placeholder="내용을 적어주세요." className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37] resize-none"></textarea>
-          <button type="submit" disabled={isSubmitting} className="w-full bg-[#d4af37] text-black font-bold py-3.5 rounded-xl text-sm hover:bg-[#c4a030] disabled:opacity-50">
-            {isSubmitting ? '전송 중...' : '🚀 전송하기'}
+        
+        {/* 💡 탭 선택 스위치 버튼 추가 */}
+        <div className="grid grid-cols-2 bg-black/20 rounded-xl p-1 mb-4 border border-white/5">
+          <button
+            type="button"
+            onClick={() => setActiveTab('inquiry')}
+            className={`py-2.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'inquiry' ? 'bg-[#d4af37] text-black shadow-md' : 'text-gray-400'
+            }`}
+          >
+            ✉️ 팀 문의
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('join')}
+            className={`py-2.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'join' ? 'bg-[#d4af37] text-black shadow-md' : 'text-gray-400'
+            }`}
+          >
+            👤 팀 참가 신청
+          </button>
+        </div>
+
+        {/* 확장된 연락하기 양식 본체 */}
+        <form onSubmit={handleSendMessage} className="bg-[#36101b] rounded-2xl p-6 border border-white/5 shadow-lg space-y-4">
+          <div>
+            <label className="block text-xs text-gray-300 mb-1">이름 *</label>
+            <input type="text" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="홍길동" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" />
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-300 mb-1">이메일 *</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" />
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-300 mb-1">연락처 *</label>
+            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-1234-5678" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" />
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-300 mb-1">
+              {activeTab === 'join' ? '자기소개 및 선호 포지션 *' : '문의 내용 *'}
+            </label>
+            <textarea rows={4} value={content} onChange={(e) => setContent(e.target.value)} placeholder={activeTab === 'join' ? "선호 포지션, 주요 경력 등 어필할 내용을 작성해주세요." : "문의하실 내용을 작성해주세요."} className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37] resize-none"></textarea>
+          </div>
+
+          <button type="submit" disabled={isSubmitting} className="w-full bg-[#d4af37] text-black font-bold py-3.5 rounded-xl text-sm hover:bg-[#c4a030] disabled:opacity-50 transition-colors">
+            {isSubmitting ? '구단 서버 등록 중...' : '🛫 전송하기'}
+          </button>
+          <p className="text-[10px] text-gray-400 text-center pt-1">
+            전송 버튼을 누르면 이메일 앱이 열립니다.
+          </p>
         </form>
       </section>
+
+      {/* 6. 푸터 구역 (💡 스크린샷 푸터 레이아웃 이식) */}
+      <footer className="max-w-md mx-auto text-center px-4 mt-8 space-y-4">
+        <div className="flex items-center justify-center gap-2 text-gray-300">
+          <span className="text-xl">🛡️</span> 
+          <span className="font-black text-sm tracking-wider">계비 UTD</span>
+        </div>
+        <p className="text-[11px] font-bold text-[#d4af37]/70 tracking-widest uppercase">
+          WE PLAY. WE FIGHT. WE WIN.
+        </p>
+        <div className="pt-1">
+          <a
+            href="https://www.instagram.com/gabby.utd?igsh=YWk4N2FiZGo4Nnht" 
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-xs font-bold px-8 py-2.5 rounded-full shadow-md hover:opacity-90 transition-opacity"
+          >
+            <span>📸 Instagram</span>
+          </a>
+        </div>
+        <p className="text-[10px] text-gray-500 pt-3">
+          © 2026 계비 UTD. All rights reserved.
+        </p>
+      </footer>
+
     </div>
   );
 }

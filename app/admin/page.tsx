@@ -14,6 +14,9 @@ export default function AdminPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 💡 [추가] 메시지 구별을 위한 필터 상태 관리 ('all': 전체, 'inquiry': 팀 문의, 'join': 참가 신청)
+  const [messageFilter, setMessageFilter] = useState<'all' | 'inquiry' | 'join'>('all');
+
   // 매치 수정용 State
   const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
   const [homeScore, setHomeScore] = useState(0);
@@ -27,31 +30,27 @@ export default function AdminPage() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
 
-  // 💡 [자동 로그인 1] 컴포넌트 로드 시 로컬스토리지에 흔적이 'true'로 남아있으면 통과
+  // [자동 로그인] 로컬스토리지 흔적 검사
   useEffect(() => {
     const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
-
     if (isSavedLogin === 'true') {
       setIsAuthenticated(true);
       fetchData();
     } else {
-      setIsLoading(false); // 흔적이 없다면 로딩을 풀고 로그인창 표시
+      setIsLoading(false);
     }
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 💡 구단주님이 갖고 계신 환경 변수를 그대로 호출합니다.
     const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
 
     if (!adminPassword) {
-      alert('환경 변수(NEXT_PUBLIC_ADMIN_PASSWORD)를 읽어오지 못했습니다. .env.local 파일 위치를 확인하세요.');
+      alert('환경 변수(NEXT_PUBLIC_ADMIN_PASSWORD)를 읽어오지 못했습니다.');
       return;
     }
 
     if (password === adminPassword) {
-      // 💡 [자동 로그인 2] 로그인 성공 흔적을 브라우저에 저장
       localStorage.setItem('gb_admin_authenticated', 'true');
       setIsAuthenticated(true);
       fetchData();
@@ -60,7 +59,6 @@ export default function AdminPage() {
     }
   };
 
-  // 💡 로그아웃 시 자동 로그인 흔적 파괴
   const handleLogout = () => {
     localStorage.removeItem('gb_admin_authenticated');
     setIsAuthenticated(false);
@@ -79,7 +77,7 @@ export default function AdminPage() {
       const { data: mData } = await supabase.from('messages').select('*').order('id', { ascending: false });
       if (mData) setMessages(mData);
 
-      // 3. 매치 데이터 로드 (스키마 지정으로 경로 에러 영구 차단)
+      // 3. 매치 데이터 로드
       const { data: matchData, error: matchError } = await supabase
         .schema('public')
         .from('matches')
@@ -120,7 +118,7 @@ export default function AdminPage() {
       if (error) {
         alert("등록 실패 원인: " + error.message);
       } else {
-        alert("경기 결과 및 로고가 성공적으로 업데이트되었습니다! 🏆");
+        alert("경기 결과가 업데이트되었습니다! 🏆");
         setEditingMatchId(null);
         fetchData();
       }
@@ -142,7 +140,7 @@ export default function AdminPage() {
       if (error) {
         alert('선수 등록 실패: ' + error.message);
       } else {
-        alert(`${newPlayerName} 선수가 구단 명단에 성공적으로 등록되었습니다! 🏃‍♂️`);
+        alert(`${newPlayerName} 선수가 등록되었습니다! 🏃‍♂️`);
         setNewPlayerName('');
         fetchData();
       }
@@ -151,9 +149,9 @@ export default function AdminPage() {
     }
   };
 
-  // 선수 삭제(방출)
+  // 선수 삭제
   const handleDeletePlayer = async (id: number, name: string) => {
-    if (!confirm(`${name} 선수를 정말 명단에서 제외(방출)하시겠습니까?`)) return;
+    if (!confirm(`${name} 선수를 정말 명단에서 제외하시겠습니까?`)) return;
 
     try {
       const { error } = await supabase.from('players').delete().eq('id', id);
@@ -161,6 +159,23 @@ export default function AdminPage() {
         alert('삭제 실패: ' + error.message);
       } else {
         fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 문의 내역 삭제 함수
+  const handleDeleteMessage = async (id: number, name: string) => {
+    if (!confirm(`${name}님의 문의 내역을 정말 삭제하시겠습니까?\n(삭제하면 복구할 수 없습니다.)`)) return;
+
+    try {
+      const { error } = await supabase.from('messages').delete().eq('id', id);
+      if (error) {
+        alert('문의 내역 삭제 실패: ' + error.message);
+      } else {
+        alert('문의 내역이 깔끔하게 삭제되었습니다.');
+        fetchData(); 
       }
     } catch (err) {
       console.error(err);
@@ -177,7 +192,12 @@ export default function AdminPage() {
     setAwayTeam(match.away_team || '잔뇨 FC');
   };
 
-  // 첫 진입 시 자동 로그인 세션 검사 로딩창
+  // 💡 [추가 로직] 선택한 탭 필터에 맞춰 화면에 보여줄 메시지만 걸러내기
+  const filteredMessages = messages.filter((msg) => {
+    if (messageFilter === 'all') return true;
+    return msg.type === messageFilter;
+  });
+
   if (isLoading && !isAuthenticated) {
     return (
       <div className="bg-[#1e060c] min-h-screen flex items-center justify-center text-white">
@@ -206,12 +226,10 @@ export default function AdminPage() {
           <button onClick={handleLogout} className="text-xs bg-red-900/40 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-900/60 transition-colors">로그아웃</button>
         </div>
 
-        {/* 1. 경기 결과 및 로고 관리 구역 */}
+        {/* 1. 경기 결과 관리 */}
         <section className="bg-[#36101b] p-6 rounded-2xl border border-white/5 shadow-md">
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">📊 경기 스코어 및 구단 로고 관리</h2>
-          {isLoading ? (
-            <p className="text-xs text-gray-400">데이터 로딩 중...</p>
-          ) : matches.length === 0 ? (
+          {matches.length === 0 ? (
             <p className="text-xs text-gray-400">조회할 매치 목록이 없습니다.</p>
           ) : (
             <div className="space-y-4">
@@ -238,12 +256,12 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[10px] text-gray-400 mb-1">🏠 홈팀 로고 Storage URL</label>
-                        <input type="text" value={homeLogo} onChange={(e) => setHomeLogo(e.target.value)} placeholder="https://..." className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <label className="block text-[10px] text-gray-400 mb-1">🏠 홈팀 로고 URL</label>
+                        <input type="text" value={homeLogo} onChange={(e) => setHomeLogo(e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-gray-400 mb-1">🏃 원정팀 로고 Storage URL</label>
-                        <input type="text" value={awayLogo} onChange={(e) => setAwayLogo(e.target.value)} placeholder="https://..." className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <label className="block text-[10px] text-gray-400 mb-1">🏃 원정팀 로고 URL</label>
+                        <input type="text" value={awayLogo} onChange={(e) => setAwayLogo(e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
                       </div>
                       <div className="flex gap-2 pt-2">
                         <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold">💾 저장하기</button>
@@ -264,10 +282,9 @@ export default function AdminPage() {
           )}
         </section>
 
-        {/* 2. 신규 선수 등록 및 명단 관리 구역 */}
+        {/* 2. 선수 명단 관리 */}
         <section className="bg-[#36101b] p-6 rounded-2xl border border-white/5 shadow-md space-y-6">
           <h2 className="text-lg font-bold flex items-center gap-2">👥 선수 등록 및 명단 관리</h2>
-          
           <form onSubmit={handleAddPlayer} className="bg-black/10 p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row gap-3">
             <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="선수 이름 기입" className="flex-1 bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
             <select value={newPlayerPosition} onChange={(e) => setNewPlayerPosition(e.target.value)} className="bg-[#1e060c] border border-white/10 rounded-xl p-2.5 text-xs text-gray-300 focus:outline-none">
@@ -292,22 +309,61 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* 3. 구단주에게 온 문의/신청 메시지 확인 구역 */}
+        {/* 3. 문의/신청 메시지 확인 및 구별 분류 섹션 */}
         <section className="bg-[#36101b] p-6 rounded-2xl border border-white/5 shadow-md">
-          <h2 className="text-lg font-bold mb-4">✉️ 도착한 메시지 리스트 ({messages.length}건)</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-lg font-bold">✉️ 도착한 메시지 관리 ({filteredMessages.length}건)</h2>
+            
+            {/* 💡 [추가] 관리자용 구별 필터 버튼 바 */}
+            <div className="flex bg-black/30 rounded-xl p-1 border border-white/5 self-start sm:self-auto">
+              <button
+                onClick={() => setMessageFilter('all')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  messageFilter === 'all' ? 'bg-[#d4af37] text-black' : 'text-gray-400'
+                }`}
+              >
+                전체
+              </button>
+              <button
+                onClick={() => setMessageFilter('inquiry')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  messageFilter === 'inquiry' ? 'bg-amber-500 text-black' : 'text-gray-400'
+                }`}
+              >
+                팀 문의만
+              </button>
+              <button
+                onClick={() => setMessageFilter('join')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  messageFilter === 'join' ? 'bg-blue-500 text-white' : 'text-gray-400'
+                }`}
+              >
+                참가 신청만
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-            {messages.length === 0 ? (
-              <p className="text-xs text-gray-500 py-4 text-center">도착한 팀 문의나 신청서가 없습니다.</p>
+            {filteredMessages.length === 0 ? (
+              <p className="text-xs text-gray-500 py-6 text-center">해당 카테고리에 도착한 내역이 없습니다.</p>
             ) : (
-              messages.map((msg) => (
+              filteredMessages.map((msg) => (
                 <div key={msg.id} className="bg-black/20 p-4 rounded-xl border border-white/5 space-y-2">
                   <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-gray-200">{msg.name}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${msg.type === 'join' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                        msg.type === 'join' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' : 'bg-amber-500/20 text-amber-400 border border-amber-500/20'
+                      }`}>
                         {msg.type === 'join' ? '참가 신청' : '팀 문의'}
                       </span>
                     </div>
+                    <button 
+                      onClick={() => handleDeleteMessage(msg.id, msg.name)} 
+                      className="text-[11px] text-red-400 hover:text-red-500 font-medium px-2 py-1 transition-colors"
+                    >
+                      삭제 ❌
+                    </button>
                   </div>
                   <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                 </div>
