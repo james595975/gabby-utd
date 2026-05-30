@@ -13,7 +13,8 @@ interface MatchData {
   away_logo?: string; 
   date?: string; 
   recent_form?: string;
-  is_practice: boolean; // 💡 연습 경기 상태 타입 정의 반영
+  is_practice: boolean;   // 💡 연습경기 타입 정의
+  match_result: string;   // 💡 경기결과 타입 정의
 }
 
 export default function Home() {
@@ -150,15 +151,26 @@ export default function Home() {
         )}
       </section>
 
-      {/* 4. 매치 스코어 보드 (💡 연습 경기 조건부 뱃지 디자인 반영) */}
+      {/* 4. 매치 스코어 보드 (💡 양방향 뱃지 타겟팅 완벽 구현) */}
       <section className="max-w-md mx-auto px-4 mb-16">
         <h2 className="text-xl font-bold flex justify-center items-center gap-2 mb-4">📊 최근 경기 결과</h2>
         <div className="relative bg-[#36101b] rounded-2xl border border-white/5 shadow-lg overflow-hidden mb-6">
           
-          {/* 💡 [연습 경기 뱃지] 데이터베이스의 is_practice 속성이 true일 때만 노출되는 레이어 마크 */}
+          {/* 좌측 상단: 연습 경기 뱃지 */}
           {!matchLoading && match?.is_practice && (
-            <div className="absolute top-2.5 left-3 text-[9px] font-black tracking-widest bg-gradient-to-r from-amber-500 to-amber-600 text-black px-2 py-0.5 rounded shadow border border-amber-400/20 z-10 animate-fade-in">
+            <div className="absolute top-2.5 left-3 text-[9px] font-black tracking-widest bg-gradient-to-r from-amber-500 to-amber-600 text-black px-2 py-0.5 rounded shadow z-10">
               연습 경기 ⚽
+            </div>
+          )}
+
+          {/* 우측 상단: 경기 결과 (승리/패배/무승부) 컬러풀 뱃지 */}
+          {!matchLoading && match?.match_result && (
+            <div className={`absolute top-2.5 right-3 text-[9px] font-black tracking-wider px-2 py-0.5 rounded shadow border z-10 ${
+              match.match_result === '승리' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+              match.match_result === '패배' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+              'bg-gray-500/20 text-gray-400 border-gray-500/30'
+            }`}>
+              {match.match_result}
             </div>
           )}
 
@@ -262,7 +274,7 @@ export default function Home() {
         </p>
         <div className="pt-1">
           <a
-            href="https://www.instagram.com/gabby.utd?igsh=YWk4N2FiZGo4Nnht" 
+            href="[https://www.instagram.com/gabby.utd?igsh=YWk4N2FiZGo4Nnht](https://www.instagram.com/gabby.utd?igsh=YWk4N2FiZGo4Nnht)" 
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-xs font-bold px-8 py-2.5 rounded-full shadow-md hover:opacity-90 transition-opacity"
