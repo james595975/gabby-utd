@@ -191,11 +191,11 @@ export default function AdminPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">홈 팀 명</label>
-                        <input type="text" value={homeTeam} onChange={(e) => setHomeTeam(target => target.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="text" value={homeTeam} onChange={(e) => setHomeTeam(target => e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">원정 팀 명</label>
-                        <input type="text" value={awayTeam} onChange={(e) => setAwayTeam(target => target.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="text" value={awayTeam} onChange={(e) => setAwayTeam(target => e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">홈 스코어</label>
