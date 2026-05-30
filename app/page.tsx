@@ -48,7 +48,7 @@ export default function Home() {
     fetchMatchData();
   }, []);
 
-  // 💡 포지션 텍스트에 따라 동적으로 스타일과 텍스트를 반환하는 함수
+  // 포지션 텍스트별 뱃지 스타일 매칭 함수
   const getPositionStyles = (pos: string) => {
     const cleanPos = pos.trim();
     if (cleanPos.includes('스트라이커') || cleanPos.toLowerCase().includes('fw') || cleanPos.includes('공격수')) {
@@ -57,7 +57,6 @@ export default function Home() {
     if (cleanPos.includes('미드필더') || cleanPos.toLowerCase().includes('mf')) {
       return { label: '미드필더', className: 'bg-green-500/10 text-green-400 border-green-500/30' };
     }
-    // 수비수(DF) 및 골키퍼(GK) 포함 기본 블루 처리
     return { label: cleanPos, className: 'bg-blue-500/10 text-blue-400 border-blue-500/30' };
   };
 
@@ -137,7 +136,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. 매치 스코어 보드 (기기 규격 최적화) */}
+      {/* 3. 선수 명단 구역 (위로 이동 완료 👥) */}
+      <section className="max-w-5xl mx-auto px-4 mb-16">
+        <h2 className="text-lg sm:text-xl font-bold flex justify-center items-center gap-2 mb-2">👥 선수 명단 ({players.length}명)</h2>
+        
+        {/* 상단 포지션 컬러 범례 안내 레이블 */}
+        <div className="flex justify-center items-center gap-4 text-[10px] sm:text-[11px] text-gray-400 mb-6 font-medium">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> 스트라이커</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> 미드필더</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> 수비수/골키퍼</span>
+        </div>
+
+        {players.length === 0 ? (
+          <p className="text-center text-xs text-gray-400 py-8 bg-[#36101b] rounded-2xl border border-white/5 max-w-xl mx-auto">등록된 선수가 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+            {players.map((player) => {
+              const posInfo = getPositionStyles(player.position);
+              return (
+                <div key={player.id} className="bg-[#36101b] rounded-2xl p-4 sm:p-5 flex flex-col items-center border border-white/5 shadow-md hover:border-white/10 transition-all text-center">
+                  <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center mb-2.5 text-xl bg-black/10 text-gray-400">
+                    👤
+                  </div>
+                  <div className="font-bold text-sm sm:text-base mb-2 text-gray-100 truncate w-full">{player.name}</div>
+                  <span className={`text-[9px] sm:text-[10px] px-2.5 py-0.5 rounded-full font-semibold border ${posInfo.className}`}>
+                    {posInfo.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* 4. 매치 스코어 보드 구역 (아래로 이동 완료 📊) */}
       <section className="max-w-4xl mx-auto px-4 mb-16">
         <h2 className="text-lg sm:text-xl font-bold flex justify-center items-center gap-2 mb-4">📊 최근 경기 결과</h2>
         <div className="relative bg-[#36101b] rounded-2xl border border-white/5 shadow-lg overflow-hidden max-w-xl mx-auto">
@@ -149,7 +181,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* 우측 상단: 경기 결과 (승리/패배/무승부) 컬러풀 뱃지 */}
+          {/* 우측 상단: 경기 결과 컬러풀 뱃지 */}
           {!matchLoading && match?.match_result && (
             <div className={`absolute top-2.5 right-3 text-[9px] font-black tracking-wider px-2 py-0.5 rounded shadow border z-10 ${
               match.match_result === '승리' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
@@ -192,41 +224,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. 선수 명단 (태블릿/PC 그리드 반응형 최적화 & 포지션별 색상 구분화) */}
-      <section className="max-w-5xl mx-auto px-4 mb-16">
-        <h2 className="text-lg sm:text-xl font-bold flex justify-center items-center gap-2 mb-2">👥 선수 명단 ({players.length}명)</h2>
-        
-        {/* 상단 포지션 컬러 범례 안내 레이블 */}
-        <div className="flex justify-center items-center gap-4 text-[10px] sm:text-[11px] text-gray-400 mb-6 font-medium">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> 스트라이커</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> 미드필더</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> 수비수/골키퍼</span>
-        </div>
-
-        {players.length === 0 ? (
-          <p className="text-center text-xs text-gray-400 py-8 bg-[#36101b] rounded-2xl border border-white/5 max-w-xl mx-auto">등록된 선수가 없습니다.</p>
-        ) : (
-          /* 모바일: 2열 / 태블릿: 3~4열 / PC: 5열 그리드 자동 전환 */
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-            {players.map((player) => {
-              const posInfo = getPositionStyles(player.position);
-              return (
-                <div key={player.id} className="bg-[#36101b] rounded-2xl p-4 sm:p-5 flex flex-col items-center border border-white/5 shadow-md hover:border-white/10 transition-all text-center">
-                  <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center mb-2.5 text-xl bg-black/10 text-gray-400">
-                    👤
-                  </div>
-                  <div className="font-bold text-sm sm:text-base mb-2 text-gray-100 truncate w-full">{player.name}</div>
-                  <span className={`text-[9px] sm:text-[10px] px-2.5 py-0.5 rounded-full font-semibold border ${posInfo.className}`}>
-                    {posInfo.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* 5. 연락하기 문의 폼 구역 (기기 중앙 정렬 최적화) */}
+      {/* 5. 연락하기 문의 폼 구역 */}
       <section className="max-w-xl mx-auto px-4 mb-16">
         <h2 className="text-lg sm:text-xl font-bold flex justify-center items-center gap-2 mb-4">✉️ 연락하기</h2>
         <div className="grid grid-cols-2 bg-black/20 rounded-xl p-1 mb-4 border border-white/5">
