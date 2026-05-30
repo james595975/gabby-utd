@@ -139,7 +139,7 @@ export default function Home() {
           )}
         </div>
         <h1 className="text-4xl sm:text-5xl font-black tracking-wider mb-3">계비 UTD</h1>
-        <p className="text-[#d4af37] text-lg sm:text-xl font-bold tracking-widest mb-4">WE PLAY. WE FIGHT. WE WIN.</p>
+        <p className="text-[#d4af37] text-lg sm:text-xl font-bold tracking-widest mb-4">열정과 함께, 끝까지 승리를 위하여</p>
         <p className="text-gray-300 text-sm">2026 구단 공식 프리미엄 대시보드</p>
       </section>
 
@@ -148,7 +148,7 @@ export default function Home() {
         <div className="bg-[#36101b] rounded-2xl p-6 sm:p-8 border border-white/5 shadow-xl text-center leading-relaxed text-gray-200 text-base max-w-2xl mx-auto">
           <strong className="text-[#d4af37] text-lg block mb-2">🛡️ 팀 소개</strong>
           <span className="font-medium text-gray-300">
-            <strong className="text-white">계비 UTD</strong>는 타협하지 않는 열정의 축구단입니다. <br/>
+            <strong className="text-white">열정과 함께, 끝까지 승리를 위하여, 계비 UTD</strong>는 타협하지 않는 열정의 축구단입니다. <br/>
             언제나 최고의 경기력과 끈끈한 팀워크로 승리를 향해 전진합니다.
           </span>
         </div>
