@@ -21,206 +21,175 @@ export default function MatchesPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // 필터 상태 관리
+  // 필터링 상태 관리
   const [typeFilter, setTypeFilter] = useState<'all' | 'official' | 'practice'>('all');
-  const [resultFilter, setResultFilter] = useState<'all' | '승리' | '무승부' | '패배'>('all');
+  const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'draw' | 'lose'>('all');
+
+  // 💎 기본 이미지 주소 세팅 (데이터베이스에 로고가 없을 때 보여줄 대체 아이콘)
+  const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; // Gabby UTD 실제 로고 주소
+  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; // 상대 팀 기본 로고나 축구공 아이콘 주소
 
   useEffect(() => {
-    fetchOpenMatches();
+    fetchMatches();
   }, []);
 
-  const fetchOpenMatches = async () => {
+  const fetchMatches = async () => {
     try {
       setLoading(true);
+      // 최신 경기가 맨 위로 오도록 정렬하여 패치
       const { data, error } = await supabase
         .from('matches')
         .select('*')
-        .order('id', { ascending: false }); // 최신 경기가 맨 위로
+        .order('date', { ascending: false })
+        .order('id', { ascending: false });
 
       if (data && !error) {
         setMatches(data);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error('경기 기록을 불러오는 중 오류 발생:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // 필터링 처리된 매치 리스트
+  // 📈 통계 계산 (필터링되지 않은 전체 데이터 기준)
+  const totalMatches = matches.length;
+  const wins = matches.filter(m => m.match_result === '승리').length;
+  const draws = matches.filter(m => m.match_result === '무승부').length;
+  const loses = matches.filter(m => m.match_result === '패배').length;
+  const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+
+  // 🔍 사용자가 선택한 조건에 따라 리스트 필터링
   const filteredMatches = matches.filter((m) => {
-    const matchType = m.is_practice ? 'practice' : 'official';
-    const passType = typeFilter === 'all' || matchType === typeFilter;
-    const passResult = resultFilter === 'all' || (m.match_result || '무승부') === resultFilter;
-    return passType && passResult;
+    // 1. 경기 유형 필터 (전체 / 공식전 / 친선전)
+    if (typeFilter === 'official' && m.is_practice) return false;
+    if (typeFilter === 'practice' && !m.is_practice) return false;
+
+    // 2. 결과 필터 (전체 / 승 / 무 / 패)
+    if (resultFilter === 'win' && m.match_result !== '승리') return false;
+    if (resultFilter === 'draw' && m.match_result !== '무승부') return false;
+    if (resultFilter === 'lose' && m.match_result !== '패배') return false;
+
+    return true;
   });
 
-  // 📊 역대 성적 통계 계산
-  const totalCount = filteredMatches.length;
-  const winCount = filteredMatches.filter((m) => m.match_result === '승리').length;
-  const drawCount = filteredMatches.filter((m) => m.match_result === '무승부' || !m.match_result).length;
-  const loseCount = filteredMatches.filter((m) => m.match_result === '패배').length;
-  const winRate = totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0;
-
   return (
-    <div className="bg-[#120206] text-white min-h-screen font-sans antialiased selection:bg-[#d4af37] selection:text-black">
-      {/* 🏠 글로벌 상단 헤더 내비게이션 바 (홈 바로가기 포함) */}
-      <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-4">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          
-          {/* 좌측: 로고 + 홈 바로가기 단추 복합 배치 */}
-          <div className="flex items-center gap-3">
-            <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#d4af37] transition-colors flex items-center gap-1.5">
-              <span>🏟️ KAEBI UTD</span>
-            </Link>
-            
-            {/* ⚡ 홈 화면 바로가기 뱃지 버튼 */}
-            <Link href="/" className="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-[#d4af37] px-2.5 py-1 rounded-full text-[11px] font-bold transition-all flex items-center gap-1">
-              <span>🏠 홈으로</span>
-            </Link>
-          </div>
-
-          {/* 우측: 내비 메뉴 텍스트 */}
-          <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
-            <Link href="/" className="hover:text-white transition-colors">메인 홈</Link>
-            <Link href="/matches" className="text-[#d4af37] border-b-2 border-[#d4af37] pb-1">MATCHES</Link>
-          </div>
-          
+    <div className="bg-[#1a050a] min-h-screen text-white p-4 sm:p-8 font-sans">
+      {/* 상단 네비게이션 헤더 */}
+      <header className="max-w-4xl mx-auto flex justify-between items-center mb-8 border-b border-white/5 pb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-black tracking-wider text-[#d4af37]">⚽ GABBY UTD</span>
         </div>
-      </nav>
+        <Link href="/" className="text-xs bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 transition-colors text-gray-300">
+          🏠 홈으로
+        </Link>
+      </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
-        
-        {/* 타이틀 섹션 */}
-        <div className="text-center sm:text-left space-y-2">
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-amber-400">
-            📊 구단 역대 경기 기록실
+      <main className="max-w-4xl mx-auto space-y-6">
+        {/* 타이틀 구역 */}
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-100 flex items-center gap-2">
+            <span className="inline-block w-3 h-6 bg-[#d4af37] rounded-sm"></span>
+            구단 역대 경기 기록실
           </h1>
-          <p className="text-xs sm:text-sm text-gray-400 font-medium">
-            계비 UTD가 걸어온 모든 공식 매치 및 친선 경기 아카이브입니다.
-          </p>
+          <p className="text-xs text-gray-400 mt-1 pl-5">Gabby UTD가 걸어온 모든 공식 매치 및 친선 경기 아카이브입니다.</p>
         </div>
 
-        {/* 📊 미니 데이터 통계 보드 */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-4 bg-[#230810] p-4 rounded-2xl border border-white/5 shadow-2xl text-center">
-          <div className="space-y-1">
-            <p className="text-[10px] sm:text-xs font-bold text-gray-400">총 경기수</p>
-            <p className="text-base sm:text-2xl font-black text-white font-mono">{totalCount}<span className="text-xs font-normal text-gray-400 ml-0.5">전</span></p>
+        {/* 📊 상단 스탯 대시보드 박스 */}
+        <div className="grid grid-cols-4 bg-[#2b0c14] border border-white/5 rounded-2xl p-4 text-center divide-x divide-white/5 shadow-lg">
+          <div>
+            <p className="text-[10px] sm:text-xs text-gray-400 font-medium">총 경기수</p>
+            <p className="text-base sm:text-xl font-black mt-1 text-gray-200">{totalMatches}<span className="text-xs font-normal text-gray-400 ml-0.5">전</span></p>
           </div>
-          <div className="space-y-1 border-l border-white/5">
-            <p className="text-[10px] sm:text-xs font-bold text-green-400">승리</p>
-            <p className="text-base sm:text-2xl font-black text-green-400 font-mono">{winCount}</p>
+          <div>
+            <p className="text-[10px] sm:text-xs text-green-400 font-bold">승리</p>
+            <p className="text-base sm:text-xl font-black mt-1 text-green-400">{wins}</p>
           </div>
-          <div className="space-y-1 border-l border-white/5">
-            <p className="text-[10px] sm:text-xs font-bold text-gray-400">무 / 패</p>
-            <p className="text-base sm:text-2xl font-black text-gray-300 font-mono">{drawCount}<span className="text-xs font-normal text-gray-500">무</span> {loseCount}<span className="text-xs font-normal text-gray-500">패</span></p>
+          <div>
+            <p className="text-[10px] sm:text-xs text-gray-400 font-medium">무 / 패</p>
+            <p className="text-base sm:text-xl font-black mt-1 text-gray-300">{draws}<span className="text-[10px] font-normal text-gray-500 mx-1">무</span>{loses}<span className="text-[10px] font-normal text-gray-500 ml-0.5">패</span></p>
           </div>
-          <div className="space-y-1 border-l border-white/5">
-            <p className="text-[10px] sm:text-xs font-bold text-amber-400">필터 승률</p>
-            <p className="text-base sm:text-2xl font-black text-[#d4af37] font-mono">{winRate}<span className="text-xs font-normal text-amber-500/70">%</span></p>
+          <div>
+            <p className="text-[10px] sm:text-xs text-amber-400 font-bold">필터 승률</p>
+            <p className="text-base sm:text-xl font-black mt-1 text-amber-400">{winRate}<span className="text-xs font-normal ml-0.5">%</span></p>
           </div>
         </div>
 
         {/* 🎛️ 필터 컨트롤러 구역 */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center bg-black/20 p-3 rounded-xl border border-white/5 text-xs font-bold">
-          <div className="flex gap-2 items-center w-full sm:w-auto">
-            <span className="text-gray-400 text-[11px] whitespace-nowrap">경기 유형:</span>
-            {/* 공식전 / 친선전 토글 */}
-            <div className="flex bg-black/30 p-0.5 rounded-lg border border-white/5 w-full sm:w-auto">
-              <button onClick={() => setTypeFilter('all')} className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md transition-all ${typeFilter === 'all' ? 'bg-[#d4af37] text-black font-black' : 'text-gray-400 hover:text-white'}`}>전체</button>
-              <button onClick={() => setTypeFilter('official')} className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md transition-all ${typeFilter === 'official' ? 'bg-amber-600 text-white font-black' : 'text-gray-400 hover:text-white'}`}>공식전</button>
-              <button onClick={() => setTypeFilter('practice')} className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md transition-all ${typeFilter === 'practice' ? 'bg-gray-700 text-gray-200 font-black' : 'text-gray-400 hover:text-white'}`}>친선전</button>
-            </div>
+        <div className="bg-[#2b0c14]/60 border border-white/5 rounded-xl p-3 flex flex-wrap gap-4 items-center justify-between text-xs font-bold text-gray-400">
+          {/* 경기 유형 필터 버튼 */}
+          <div className="flex items-center gap-1.5 bg-black/20 p-1 rounded-lg">
+            <button onClick={() => setTypeFilter('all')} className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'all' ? 'bg-[#d4af37] text-black font-black' : 'hover:text-white'}`}>전체</button>
+            <button onClick={() => setTypeFilter('official')} className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'official' ? 'bg-[#d4af37] text-black font-black' : 'hover:text-white'}`}>공식전</button>
+            <button onClick={() => setTypeFilter('practice')} className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'practice' ? 'bg-[#d4af37] text-black font-black' : 'hover:text-white'}`}>친선전</button>
           </div>
 
-          <div className="flex gap-2 items-center w-full sm:w-auto">
-            <span className="text-gray-400 text-[11px] whitespace-nowrap">결과별 필터:</span>
-            <div className="flex bg-black/30 p-0.5 rounded-lg border border-white/5 w-full sm:w-auto">
-              {(['all', '승리', '무승부', '패배'] as const).map((res) => (
-                <button
-                  key={res}
-                  onClick={() => setResultFilter(res)}
-                  className={`flex-1 sm:flex-none px-2.5 py-1.5 rounded-md transition-all text-[11px] ${
-                    resultFilter === res 
-                      ? res === '승리' ? 'bg-green-600 text-white font-black' :
-                        res === '패배' ? 'bg-red-600 text-white font-black' :
-                        res === '무승부' ? 'bg-gray-500 text-white font-black' : 'bg-white text-black font-black'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {res === 'all' ? '전체결과' : res}
-                </button>
-              ))}
-            </div>
+          {/* 결과별 필터 버튼 */}
+          <div className="flex items-center gap-1 bg-black/20 p-1 rounded-lg text-[11px]">
+            <span className="text-[10px] text-gray-500 px-1 font-normal">결과별 필터:</span>
+            <button onClick={() => setResultFilter('all')} className={`px-2 py-0.5 rounded transition-colors ${resultFilter === 'all' ? 'bg-white text-black font-black' : 'hover:text-white'}`}>전체결과</button>
+            <button onClick={() => setResultFilter('win')} className={`px-2 py-0.5 rounded transition-colors ${resultFilter === 'win' ? 'bg-green-500 text-white font-black' : 'hover:text-white'}`}>승리</button>
+            <button onClick={() => setResultFilter('draw')} className={`px-2 py-0.5 rounded transition-colors ${resultFilter === 'draw' ? 'bg-gray-500 text-white font-black' : 'hover:text-white'}`}>무승부</button>
+            <button onClick={() => setResultFilter('lose')} className={`px-2 py-0.5 rounded transition-colors ${resultFilter === 'lose' ? 'bg-red-500 text-white font-black' : 'hover:text-white'}`}>패배</button>
           </div>
         </div>
 
-        {/* 📅 스코어보드 피드 리스트 구역 */}
-        <div className="space-y-4">
+        {/* 📋 경기 전적 카드 리스트 구역 */}
+        <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-20 space-y-2">
-              <div className="w-6 h-6 border-2 border-[#d4af37] border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <p className="text-xs text-gray-400">역대 경기 데이터 로딩 중...</p>
-            </div>
+            <div className="text-center py-12 text-xs text-gray-500">데이터베이스 매치 로드 중...</div>
           ) : filteredMatches.length === 0 ? (
-            <div className="text-center py-20 bg-black/10 rounded-2xl border border-white/5 border-dashed">
-              <p className="text-sm text-gray-400 font-medium">조건에 맞는 경기 기록이 존재하지 않습니다. ⚽</p>
-            </div>
+            <div className="text-center py-12 text-xs text-gray-500 bg-[#2b0c14]/20 border border-dashed border-white/5 rounded-2xl">조회된 조건의 매치 결과가 없습니다.</div>
           ) : (
             filteredMatches.map((match) => {
-              const currentResult = match.match_result || '무승부';
+              // 안전한 이미지 주소 매핑 (DB 값이 비어있거나 이상하면 기본 지정 아이콘 표출)
+              const currentHomeLogo = match.home_logo && match.home_logo.startsWith('http') ? match.home_logo : DEFAULT_HOME_LOGO;
+              const currentAwayLogo = match.away_logo && match.away_logo.startsWith('http') ? match.away_logo : DEFAULT_AWAY_LOGO;
+
               return (
-                <div 
-                  key={match.id} 
-                  className="bg-gradient-to-b from-[#20070e] to-[#180409] border border-white/5 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-center gap-4 hover:border-white/10 transition-all shadow-lg"
-                >
-                  {/* 좌측 정보 영역 */}
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start border-b sm:border-b-0 border-white/5 pb-2 sm:pb-0">
+                <div key={match.id} className="bg-[#2b0c14] border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-md hover:border-white/10 transition-all">
+                  {/* 왼쪽: 태그 정보 조합 */}
+                  <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center gap-x-3 min-w-[100px]">
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded text-center border w-fit ${
+                      match.match_result === '승리' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                      match.match_result === '패배' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                      'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                    }`}>
+                      {match.match_result || '무승부'}
+                    </span>
+                    <span className="text-[9px] bg-black/30 border border-white/5 text-gray-400 px-1.5 py-0.5 rounded w-fit">
+                      {match.is_practice ? '친선 매치' : '공식 매치'}
+                    </span>
+                    {/* 날짜 필드 예외 처리 */}
+                    <span className="text-[10px] text-gray-500 font-mono font-bold block sm:inline">
+                      {match.date ? match.date : '날짜 미정'}
+                    </span>
+                  </div>
+
+                  {/* 오른쪽: 스코어 보드 인터페이스 */}
+                  <div className="flex items-center gap-3 sm:gap-6 flex-1 justify-end max-w-lg">
+                    {/* 홈 팀 (Gabby UTD 고정 혹은 DB값) */}
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${
-                        currentResult === '승리' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                        currentResult === '패배' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                        'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                      }`}>
-                        {currentResult}
-                      </span>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                        match.is_practice ? 'bg-gray-800 text-gray-400 border border-white/5' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      }`}>
-                        {match.is_practice ? '친선 매치' : '공식 리그'}
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-mono text-gray-500 font-semibold">{match.date || '날짜 미지정'}</span>
-                  </div>
-
-                  {/* 중앙 매치 현황 구역 */}
-                  <div className="flex items-center justify-center gap-4 sm:gap-8 flex-1 w-full my-1">
-                    {/* 홈 팀 */}
-                    <div className="flex items-center gap-2 sm:gap-3 w-[40%] justify-end">
-                      <span className="font-black text-sm sm:text-base text-gray-100 truncate text-right">{match.home_team || '계비 UTD'}</span>
-                      <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-sm sm:text-base shadow-inner overflow-hidden flex-shrink-0">
-                        {match.home_logo && match.home_logo.startsWith('http') ? (
-                          <img src={match.home_logo} alt="home" className="w-full h-full object-contain p-1" onError={(e)=>{(e.target as HTMLElement).style.display='none'}} />
-                        ) : '🛡️'}
-                      </div>
+                      <span className="text-xs sm:text-sm font-black text-gray-100">{match.home_team || 'Gabby UTD'}</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={currentHomeLogo} alt="Home Team Logo" className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5" onError={(e)=>{(e.target as HTMLImageElement).src=DEFAULT_HOME_LOGO}} />
                     </div>
 
-                    {/* 스코어 스코어보드 */}
-                    <div className="font-mono bg-black/60 px-3.5 py-1.5 rounded-xl border border-white/10 font-black text-base sm:text-xl text-center min-w-[70px] shadow-md tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-300">
-                      {match.home_score} : {match.away_score}
+                    {/* 중앙 대형 스코어 점수판 */}
+                    <div className="bg-black/30 px-3 py-1.5 rounded-xl border border-white/5 font-mono text-center min-w-[65px]">
+                      <span className="text-sm sm:text-base font-black text-white">{match.home_score}</span>
+                      <span className="text-xs text-gray-600 mx-1.5">:</span>
+                      <span className="text-sm sm:text-base font-black text-white">{match.away_score}</span>
                     </div>
 
-                    {/* 원정 팀 */}
-                    <div className="flex items-center gap-2 sm:gap-3 w-[40%] justify-start">
-                      <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-sm sm:text-base shadow-inner overflow-hidden flex-shrink-0">
-                        {match.away_logo && match.away_logo.startsWith('http') ? (
-                          <img src={match.away_logo} alt="away" className="w-full h-full object-contain p-1" onError={(e)=>{(e.target as HTMLElement).style.display='none'}} />
-                        ) : '🏃'}
-                      </div>
-                      <span className="font-black text-sm sm:text-base text-gray-300 truncate text-left">{match.away_team}</span>
+                    {/* 원정 팀 (상대팀 정보) */}
+                    <div className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={currentAwayLogo} alt="Away Team Logo" className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5" onError={(e)=>{(e.target as HTMLImageElement).src=DEFAULT_AWAY_LOGO}} />
+                      <span className="text-xs sm:text-sm font-bold text-gray-300">{match.away_team || '상대 팀'}</span>
                     </div>
                   </div>
-
                 </div>
               );
             })

@@ -42,6 +42,10 @@ export default function Home() {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 💎 [기본값 설정] 데이터베이스에 이미지 URL이 없거나 깨질 때 대체할 로고 주소
+  const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; // 🏠 우리 팀(Gabby UTD) 기본 로고
+  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; // 🏃 상대 팀(예: 잔뇨 FC 등) 기본 로고
+
   useEffect(() => {
     const fetchPlayers = async () => {
       const { data, error } = await supabase.from('players').select('*').order('id', { ascending: true });
@@ -65,7 +69,6 @@ export default function Home() {
 
     const fetchMatchData = async () => {
       try {
-        // matches 테이블에서 가장 최근에 등록한(ID가 가장 큰) 1건을 가져옵니다.
         const { data, error } = await supabase
           .from('matches')
           .select('*')
@@ -86,7 +89,6 @@ export default function Home() {
     fetchMatchData();
   }, []);
 
-  // 포지션별 카드 전체 배경색 및 뱃지 스타일 매칭 함수
   const getPositionStyles = (pos: string) => {
     const cleanPos = pos ? pos.trim() : '';
     if (cleanPos.includes('스트라이커') || cleanPos.toLowerCase().includes('fw') || cleanPos.includes('공격수')) {
@@ -117,7 +119,6 @@ export default function Home() {
     };
   };
 
-  // 태그별 스타일 매칭 함수
   const getTagStyles = (tag: string) => {
     switch (tag) {
       case '공지': return 'bg-red-500/20 text-red-300 border-red-500/30';
@@ -150,13 +151,13 @@ export default function Home() {
       }
 
       const targetEmail = 'gyebi-utd@email.com'; 
-      const subject = encodeURIComponent(`[${activeTab === 'join' ? '참가 신청' : '팀 문의'}] 계비 UTD ${senderName}님의 메시지`);
+      const subject = encodeURIComponent(`[${activeTab === 'join' ? '참가 신청' : '팀 문의'}] Gabby UTD ${senderName}님의 메시지`);
       const body = encodeURIComponent(
         `이름: ${senderName}\n이메일: ${email}\n연락처: ${phone}\n\n내용:\n${content}`
       );
       window.location.href = `mailto:${targetEmail}?subject=${subject}?body=${body}`;
 
-      alert('계비 UTD 구단 데이터베이스에 성공적으로 접수되었습니다! 🔥');
+      alert('Gabby UTD 구단 데이터베이스에 성공적으로 접수되었습니다! 🔥');
       setSenderName('');
       setEmail('');
       setPhone('');
@@ -168,24 +169,24 @@ export default function Home() {
     }
   };
 
-  // 🛡️ 실시간 연동 필드 매핑 및 예외 방어 데이터 설정
-  const displayHomeTeam = match?.home_team || '계비 UTD';
+  // 🛡️ 실시간 연동 필드 매핑 및 예외 방어 데이터 설정 (요청대로 기본값을 영어 명칭으로 적용)
+  const displayHomeTeam = match?.home_team || 'Gabby UTD';
   const displayAwayTeam = match?.away_team || '상대 팀';
   const displayHomeScore = match !== null ? match.home_score : 0;
   const displayAwayScore = match !== null ? match.away_score : 0;
   const displayDate = match?.date || '최근 경기 기록';
 
-  const homeLogoUrl = match?.home_logo ? match.home_logo.trim() : '';
-  const awayLogoUrl = match?.away_logo ? match.away_logo.trim() : '';
+  // 로고 텍스트 주소 체크 및 상수 예외 방어
+  const homeLogoUrl = match?.home_logo && match.home_logo.startsWith('http') ? match.home_logo.trim() : DEFAULT_HOME_LOGO;
+  const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;
 
   return (
     <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-20">
-      
-      {/* 📌 상단 고정 네비게이션 바 추가 (기록실과의 자연스러운 전환을 위함) */}
+      {/* 📌 상단 고정 네비게이션 바 영문 세팅 */}
       <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-4">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2">
-            <span>🏟️ KAEBI UTD</span>
+            <span>⚽ Gabby UTD</span>
           </Link>
           <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
             <Link href="/" className="text-[#e5c158] border-b-2 border-[#e5c158] pb-1">메인 홈</Link>
@@ -197,14 +198,13 @@ export default function Home() {
       {/* 1. 히어로 구역 */}
       <section className="flex flex-col items-center justify-center text-center pt-16 pb-16 px-4">
         <div className="w-40 h-40 rounded-full bg-black/30 border-4 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-2xl mb-6">
-          {homeLogoUrl && homeLogoUrl.startsWith('http') ? (
-            <img src={homeLogoUrl} alt="Club Logo" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-center p-2 flex flex-col items-center justify-center">
-              <span className="text-4xl mb-1">🛡️</span>
-              <span className="text-[#d4af37] text-xs font-black tracking-tighter">계비 UTD</span>
-            </div>
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={homeLogoUrl} 
+            alt="Club Logo" 
+            className="w-full h-full object-cover" 
+            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
+          />
         </div>
         <h1 className="text-4xl sm:text-5xl font-black tracking-wider mb-3">{displayHomeTeam}</h1>
         <p className="text-[#d4af37] text-lg sm:text-xl font-bold tracking-widest mb-4">열정과 함께, 끝까지 승리를 위하여</p>
@@ -260,6 +260,7 @@ export default function Home() {
                   </div>
                   {item.image_url && (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-black/20 rounded-xl overflow-hidden flex-shrink-0 border border-white/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={item.image_url} alt="News thumbnail" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -309,14 +310,12 @@ export default function Home() {
         )}
       </section>
 
-      {/* 5. 매치 스코어 보드 구역 (★ 타이틀 우측에 기록실 바로가기 배치 완료) */}
+      {/* 5. 매치 스코어 보드 구역 */}
       <section className="max-w-5xl mx-auto px-4 mb-20">
         <div className="flex justify-between items-center mb-6 max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-black text-[#e5c158] flex items-center gap-2">
             🏆 최근 경기 결과
           </h2>
-          
-          {/* 🔥 경기 기록실(더보기 탭 역할) 바로가기 버튼 */}
           <Link 
             href="/matches" 
             className="text-xs font-black text-[#d4af37] hover:text-amber-300 bg-black/30 hover:bg-black/50 border border-[#d4af37]/40 px-3 py-2 rounded-xl transition-all flex items-center gap-1 shadow-md"
@@ -355,11 +354,13 @@ export default function Home() {
               {/* 🛡️ 홈 팀 구역 */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
-                  {homeLogoUrl && homeLogoUrl.startsWith('http') ? (
-                    <img src={homeLogoUrl} className="w-full h-full object-cover" alt="Home Team" />
-                  ) : (
-                    <span className="text-3xl sm:text-4xl">🛡️</span>
-                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={homeLogoUrl} 
+                    className="w-full h-full object-cover" 
+                    alt="Home Team" 
+                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
+                  />
                 </div>
                 <span className="font-black text-base sm:text-xl text-amber-400 tracking-wide truncate w-full">{displayHomeTeam}</span>
               </div>
@@ -376,11 +377,13 @@ export default function Home() {
               {/* 🏃 원정 팀 구역 */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
-                  {awayLogoUrl && awayLogoUrl.startsWith('http') ? (
-                    <img src={awayLogoUrl} className="w-full h-full object-cover" alt="Away Team" />
-                  ) : (
-                    <span className="text-3xl sm:text-4xl">⚽</span>
-                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={awayLogoUrl} 
+                    className="w-full h-full object-cover" 
+                    alt="Away Team" 
+                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AWAY_LOGO; }}
+                  />
                 </div>
                 <span className="font-black text-base sm:text-xl text-white tracking-wide truncate w-full">{displayAwayTeam}</span>
               </div>
@@ -470,7 +473,6 @@ export default function Home() {
           © 2026 {displayHomeTeam}. All rights reserved.
         </p>
       </footer>
-
     </div>
   );
 }
