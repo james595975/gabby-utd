@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
+import Link from 'next/link';
 
 interface Player { id: number; name: string; position: string; }
 
@@ -19,11 +20,22 @@ interface MatchData {
   match_result?: string; 
 }
 
+interface NewsItem {
+  id: number;
+  title: string;
+  content: string;
+  image_url?: string;
+  tag: string;
+  created_at: string;
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'inquiry' | 'join'>('inquiry');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
   const [matchLoading, setMatchLoading] = useState<boolean>(true);
+  const [newsLoading, setNewsLoading] = useState<boolean>(true);
   const [senderName, setSenderName] = useState('');
   const [email, setEmail] = useState(''); 
   const [phone, setPhone] = useState(''); 
@@ -34,6 +46,22 @@ export default function Home() {
     const fetchPlayers = async () => {
       const { data, error } = await supabase.from('players').select('*').order('id', { ascending: true });
       if (!error && data) setPlayers(data);
+    };
+
+    const fetchNews = async () => {
+      try {
+        // 메인 홈에는 가독성을 위해 최신 소식 딱 2개만 깔끔하게 노출
+        const { data, error } = await supabase
+          .from('news')
+          .select('*')
+          .order('id', { ascending: false })
+          .limit(2);
+        if (!error && data) setNews(data);
+      } catch (e) {
+        console.error("News fetch error on home:", e);
+      } finally {
+        setNewsLoading(false);
+      }
     };
 
     const fetchMatchData = async () => {
@@ -50,6 +78,7 @@ export default function Home() {
     };
 
     fetchPlayers();
+    fetchNews();
     fetchMatchData();
   }, []);
 
@@ -75,6 +104,16 @@ export default function Home() {
       cardClass: 'bg-gradient-to-br from-[#162a4c] to-[#0a1428] border-blue-500/20 hover:border-blue-500/40',
       badgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/40' 
     };
+  };
+
+  // 태그별 스타일 매칭 함수
+  const getTagStyles = (tag: string) => {
+    switch (tag) {
+      case '공지': return 'bg-red-500/20 text-red-300 border-red-500/30';
+      case '경기결과': return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      case '이벤트': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -104,7 +143,7 @@ export default function Home() {
       const body = encodeURIComponent(
         `이름: ${senderName}\n이메일: ${email}\n연락처: ${phone}\n\n내용:\n${content}`
       );
-      window.location.href = `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:${targetEmail}?subject=${subject}?body=${body}`;
 
       alert('계비 UTD 구단 데이터베이스에 성공적으로 접수되었습니다! 🔥');
       setSenderName('');
@@ -154,12 +193,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. 선수 명단 구역 */}
+      {/* 📰 3. 최근 구단 소식 섹션 (자동 연동 구역 추가) */}
+      <section className="max-w-4xl mx-auto px-4 mb-20">
+        <div className="flex justify-between items-center mb-6 max-w-2xl mx-auto">
+          <h2 className="text-xl sm:text-2xl font-black text-[#e5c158] flex items-center gap-2">📰 최근 소식</h2>
+          <Link href="/news" className="text-xs font-bold text-gray-400 hover:text-[#d4af37] transition-colors bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+            전체보기 ➔
+          </Link>
+        </div>
+
+        {newsLoading ? (
+          <div className="text-center py-8 text-xs text-gray-400">최신 소식을 로딩 중...</div>
+        ) : news.length === 0 ? (
+          <div className="text-center py-8 bg-[#36101b] rounded-2xl border border-white/5 text-xs text-gray-400 max-w-2xl mx-auto">
+            등록된 구단 소식이 없습니다. 관리자 페이지에서 첫 소식을 발행해 보세요!
+          </div>
+        ) : (
+          <div className="space-y-4 max-w-2xl mx-auto">
+            {news.map((item) => (
+              <Link href="/news" key={item.id} className="block bg-[#36101b] border border-white/5 hover:border-white/20 p-5 rounded-2xl shadow-xl transition-all group">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded border ${getTagStyles(item.tag)}`}>
+                        {item.tag}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-mono">
+                        {new Date(item.created_at).toLocaleDateString('ko-KR')}
+                      </span>
+                    </div>
+                    <h3 className="font-black text-sm sm:text-base text-white group-hover:text-[#e5c158] truncate transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed">
+                      {item.content}
+                    </p>
+                  </div>
+                  {item.image_url && (
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-black/20 rounded-xl overflow-hidden flex-shrink-0 border border-white/5">
+                      <img src={item.image_url} alt="News thumbnail" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 4. 선수 명단 구역 */}
       <section className="max-w-6xl mx-auto px-4 mb-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-3 text-[#e5c158]">
           👥 선수 명단
         </h2>
-        
         {/* 범례 가이드 라인 */}
         <div className="flex justify-center items-center gap-5 text-xs text-gray-300 mb-8 font-semibold bg-black/20 py-2 px-6 rounded-full w-fit mx-auto border border-white/5">
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-600" /> 스트라이커</span>
@@ -194,14 +280,12 @@ export default function Home() {
         )}
       </section>
 
-      {/* 4. 매치 스코어 보드 구역 */}
+      {/* 5. 매치 스코어 보드 구역 */}
       <section className="max-w-5xl mx-auto px-4 mb-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-6 text-[#e5c158]">
           🏆 경기 기록
         </h2>
-        
         <div className="relative bg-[#36101b] rounded-3xl border border-white/10 shadow-2xl overflow-hidden max-w-3xl mx-auto">
-          
           <div className="absolute top-4 left-4 z-10">
             <span className="text-[10px] sm:text-xs font-black tracking-widest bg-amber-500 text-black px-3 py-1 rounded-md shadow">
               연습경기
@@ -253,7 +337,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. 연락하기 문의 폼 구역 */}
+      {/* 6. 연락하기 문의 폼 구역 */}
       <section className="max-w-2xl mx-auto px-4 mb-20">
         <h2 className="text-2xl font-black text-center flex justify-center items-center gap-2 mb-6 text-[#e5c158]">
           ✉️ 연락하기
@@ -311,14 +395,14 @@ export default function Home() {
         </form>
       </section>
 
-      {/* 6. 푸터 구역 */}
+      {/* 7. 푸터 구역 */}
       <footer className="max-w-md mx-auto text-center px-4 space-y-4">
         <div className="flex items-center justify-center gap-2 text-gray-300">
           <span className="text-2xl">🛡️</span> 
           <span className="font-black text-base tracking-wider">계비 UTD</span>
         </div>
         <p className="text-xs font-bold text-[#d4af37]/70 tracking-widest uppercase">
-          WE PLAY. WE FIGHT. WE WIN.
+          열정과 함께, 끝까지 승리를 위하여.
         </p>
         <div className="pt-1">
           <a

@@ -15,8 +15,16 @@ interface MatchData {
   away_logo?: string; 
   date?: string; 
   recent_form?: string;
-  is_practice: boolean; 
-  match_result: string; 
+  is_practice?: boolean; 
+  match_result?: string; 
+}
+interface NewsItem {
+  id: number;
+  title: string;
+  content: string;
+  image_url?: string;
+  tag: string;
+  created_at: string;
 }
 
 export default function AdminPage() {
@@ -25,6 +33,7 @@ export default function AdminPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [matches, setMatches] = useState<MatchData[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // 경기 결과 수정 관련 상태
@@ -41,6 +50,12 @@ export default function AdminPage() {
   // 신규 선수 등록 관련 상태
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
+
+  // 🔥 신규 소식 등록 관련 상태
+  const [newsTitle, setNewsTitle] = useState('');
+  const [newsContent, setNewsContent] = useState('');
+  const [newsTag, setNewsTag] = useState('공지');
+  const [newsImageUrl, setNewsImageUrl] = useState('');
 
   useEffect(() => {
     const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
@@ -73,6 +88,7 @@ export default function AdminPage() {
   const fetchData = async () => {
     try {
       setIsLoading(false);
+      
       // 1. 선수 명단 가져오기
       const { data: pData } = await supabase.from('players').select('*').order('id', { ascending: true });
       if (pData) setPlayers(pData);
@@ -82,8 +98,13 @@ export default function AdminPage() {
       if (mData) setMessages(mData);
 
       // 3. 경기 정보 가져오기
-      const { data: matchData, error: matchError } = await supabase.schema('public').from('matches').select('*');
+      const { data: matchData, error: matchError } = await supabase.from('matches').select('*');
       if (matchData && !matchError) setMatches(matchData);
+
+      // 🔥 4. 구단 소식 가져오기
+      const { data: newsData, error: newsError } = await supabase.from('news').select('*').order('id', { ascending: false });
+      if (newsData && !newsError) setNews(newsData);
+
     } catch (e) {
       console.error(e);
     }
@@ -96,7 +117,6 @@ export default function AdminPage() {
 
     try {
       const { error } = await supabase
-        .schema('public')
         .from('matches')
         .update({
           home_score: Number(homeScore),
@@ -146,6 +166,43 @@ export default function AdminPage() {
     if (!error) fetchData();
   };
 
+  // 🔥 소식 추가 기능
+  const handleAddNews = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsTitle.trim() || !newsContent.trim()) {
+      return alert('제목과 내용은 필수 항목입니다.');
+    }
+
+    const { error } = await supabase
+      .from('news')
+      .insert([
+        {
+          title: newsTitle.trim(),
+          content: newsContent.trim(),
+          tag: newsTag,
+          image_url: newsImageUrl.trim() || null
+        }
+      ]);
+
+    if (!error) {
+      alert('새로운 소식이 성공적으로 등록되었습니다! 📰');
+      setNewsTitle('');
+      setNewsContent('');
+      setNewsImageUrl('');
+      setNewsTag('공지');
+      fetchData();
+    } else {
+      alert('소식 등록 실패: ' + error.message);
+    }
+  };
+
+  // 🔥 소식 삭제 기능
+  const handleDeleteNews = async (id: number, title: string) => {
+    if (!confirm(`"${title}" 소식을 삭제하시겠습니까? 홈 화면과 소식 페이지에서 모두 내려갑니다.`)) return;
+    const { error } = await supabase.from('news').delete().eq('id', id);
+    if (!error) fetchData();
+  };
+
   const startEdit = (match: MatchData) => {
     setEditingMatchId(match.id);
     setHomeScore(match.home_score);
@@ -191,11 +248,11 @@ export default function AdminPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">홈 팀 명</label>
-                        <input type="text" value={homeTeam} onChange={(e) => setHomeTeam(target => e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="text" value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">원정 팀 명</label>
-                        <input type="text" value={awayTeam} onChange={(e) => setAwayTeam(target => e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="text" value={awayTeam} onChange={(e) => setAwayTeam(e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">홈 스코어</label>
@@ -249,7 +306,63 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* [2구역] 선수 명단 관리 추가/삭제 (복구 완료 🔥) */}
+        {/* 🔥 [신규 추가 구역] [2구역] 구단 소식 게시판 포스팅 관리 */}
+        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
+          <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">📰 구단 소식 포스팅 관리 ({news.length}건)</h2>
+          
+          {/* 소식 글쓰기 폼 */}
+          <form onSubmit={handleAddNews} className="space-y-3 bg-black/20 p-4 rounded-xl border border-white/5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] text-gray-400 mb-1">소식 제목 *</label>
+                <input type="text" value={newsTitle} onChange={(e) => setNewsTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1">분류 태그</label>
+                <select value={newsTag} onChange={(e) => setNewsTag(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none cursor-pointer">
+                  <option value="공지">🚨 공지사항</option>
+                  <option value="경기결과">⚽ 경기결과</option>
+                  <option value="이벤트">🎉 이벤트/행사</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] text-gray-400 mb-1">대표 이미지 주소 (선택)</label>
+              <input type="text" value={newsImageUrl} onChange={(e) => setNewsImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
+            </div>
+
+            <div>
+              <label className="block text-[10px] text-gray-400 mb-1">본문 내용 *</label>
+              <textarea rows={3} value={newsContent} onChange={(e) => setNewsContent(e.target.value)} placeholder="구단원들에게 공유할 상세 내용을 적어주세요." className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37] resize-none"></textarea>
+            </div>
+
+            <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-black font-black py-2.5 rounded-xl text-xs transition-colors">
+              🚀 작성한 소식 발행하기
+            </button>
+          </form>
+
+          {/* 발행된 소식 리스트 내역 */}
+          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+            {news.map((item) => (
+              <div key={item.id} className="bg-black/10 border border-white/5 p-3 rounded-xl flex justify-between items-center gap-4 text-xs">
+                <div className="truncate space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] bg-black/40 text-gray-400 px-1.5 py-0.5 rounded font-mono">ID: {item.id}</span>
+                    <span className="text-[10px] text-amber-300 font-bold">[{item.tag}]</span>
+                    <span className="text-gray-400 text-[10px]">{new Date(item.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="font-bold text-gray-200 truncate">{item.title}</p>
+                </div>
+                <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-3 py-1.5 rounded-lg border border-red-500/10 font-bold flex-shrink-0">
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* [3구역] 선수 명단 관리 추가/삭제 */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md">
           <h2 className="text-base sm:text-lg font-bold mb-4">👥 구단 선수 명단 관리 ({players.length}명)</h2>
           
@@ -279,7 +392,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* [3구역] 접수된 문의 메세지 내역 (복구 완료 🔥) */}
+        {/* [4구역] 접수된 문의 메세지 내역 */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md">
           <h2 className="text-base sm:text-lg font-bold mb-4">✉️ 접수된 문의/신청 리스트 ({messages.length}건)</h2>
           {messages.length === 0 ? (
