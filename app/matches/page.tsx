@@ -25,7 +25,7 @@ export default function MatchesPage() {
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'draw' | 'lose'>('all');
 
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
-  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; 
+  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg'; 
 
   useEffect(() => {
     fetchMatches();
