@@ -66,12 +66,18 @@ export default function Home() {
 
     const fetchMatchData = async () => {
       try {
-        const { data, error } = await supabase.from('matches').select('*');
+        // 🔥 최신 등록된 경기가 상단에 매핑되도록 id 내림차순 정렬 후 최상위 1건 바인딩
+        const { data, error } = await supabase
+          .from('matches')
+          .select('*')
+          .order('id', { ascending: false })
+          .limit(1);
+          
         if (data && data.length > 0 && !error) {
           setMatch(data[0]);
         }
       } catch (e) {
-        console.error("Match data fetch fallback active:", e);
+        console.error("Match data fetch error on home:", e);
       } finally {
         setMatchLoading(false);
       }
@@ -82,9 +88,10 @@ export default function Home() {
     fetchMatchData();
   }, []);
 
-  // 포지션별 카드 전체 배경색 및 뱃지 스타일 매칭 함수
+  // 🔥 포시션별 카드 전체 배경색 및 골키퍼(GK) 예외 처리 스타일 매칭 함수
   const getPositionStyles = (pos: string) => {
     const cleanPos = pos ? pos.trim() : '';
+    
     if (cleanPos.includes('스트라이커') || cleanPos.toLowerCase().includes('fw') || cleanPos.includes('공격수')) {
       return { 
         label: '스트라이커', 
@@ -99,6 +106,15 @@ export default function Home() {
         badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
       };
     }
+    // 🟡 골키퍼 디자인 테마 셋셋 (노란색/골드 그라디언트 톤 매핑)
+    if (cleanPos.includes('골키퍼') || cleanPos.toLowerCase().includes('gk')) {
+      return { 
+        label: '골키퍼', 
+        cardClass: 'bg-gradient-to-br from-[#3d3214] to-[#221a0a] border-amber-500/20 hover:border-amber-500/40',
+        badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+      };
+    }
+    // 기본 디폴트: 수비수 디펜더 스타일
     return { 
       label: cleanPos || '수비수', 
       cardClass: 'bg-gradient-to-br from-[#162a4c] to-[#0a1428] border-blue-500/20 hover:border-blue-500/40',
@@ -193,7 +209,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 📰 3. 최근 구단 소식 섹션 (자동 연동 구역 추가) */}
+      {/* 3. 최근 구단 소식 섹션 */}
       <section className="max-w-4xl mx-auto px-4 mb-20">
         <div className="flex justify-between items-center mb-6 max-w-2xl mx-auto">
           <h2 className="text-xl sm:text-2xl font-black text-[#e5c158] flex items-center gap-2">📰 최근 소식</h2>
@@ -241,16 +257,18 @@ export default function Home() {
         )}
       </section>
 
-      {/* 4. 선수 명단 구역 */}
+      {/* 4. 선수 명단 구역 (골키퍼 범례 가이드 추가 통합) */}
       <section className="max-w-6xl mx-auto px-4 mb-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-3 text-[#e5c158]">
           👥 선수 명단
         </h2>
-        {/* 범례 가이드 라인 */}
-        <div className="flex justify-center items-center gap-5 text-xs text-gray-300 mb-8 font-semibold bg-black/20 py-2 px-6 rounded-full w-fit mx-auto border border-white/5">
+        
+        {/* 범례 가이드 라인 최적화 */}
+        <div className="flex flex-wrap justify-center items-center gap-4 text-xs text-gray-300 mb-8 font-semibold bg-black/20 py-2 px-6 rounded-full w-fit mx-auto border border-white/5">
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-600" /> 스트라이커</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-600" /> 미드필더</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-600" /> 수비수</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-500" /> 골키퍼</span>
         </div>
 
         {players.length === 0 ? (
@@ -280,28 +298,33 @@ export default function Home() {
         )}
       </section>
 
-      {/* 5. 매치 스코어 보드 구역 */}
+      {/* 5. 매치 스코어 보드 구역 (어드민 추가 등록 데이터 완벽 연동) */}
       <section className="max-w-5xl mx-auto px-4 mb-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-6 text-[#e5c158]">
           🏆 경기 기록
         </h2>
         <div className="relative bg-[#36101b] rounded-3xl border border-white/10 shadow-2xl overflow-hidden max-w-3xl mx-auto">
+          
           <div className="absolute top-4 left-4 z-10">
-            <span className="text-[10px] sm:text-xs font-black tracking-widest bg-amber-500 text-black px-3 py-1 rounded-md shadow">
-              연습경기
+            <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow ${
+              match?.is_practice ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'
+            }`}>
+              {match?.is_practice ? '연습경기' : '공식매치'}
             </span>
           </div>
 
           <div className="absolute top-4 right-4 z-10">
             <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow border ${
-              match?.match_result === '패배' ? 'bg-red-600/30 text-red-400 border-red-500/40' : 'bg-green-600/30 text-green-400 border-green-500/40'
+              match?.match_result === '패배' ? 'bg-red-600/30 text-red-400 border-red-500/40' : 
+              match?.match_result === '무승부' ? 'bg-gray-600/30 text-gray-300 border-gray-500/40' :
+              'bg-green-600/30 text-green-400 border-green-500/40'
             }`}>
               {match?.match_result || '승리'}
             </span>
           </div>
 
           <div className="bg-black/30 text-center py-3 text-xs sm:text-sm font-bold text-gray-400 tracking-widest border-b border-white/5">
-            📅 {displayDate}
+            📅 {match?.date ? match.date : displayDate}
           </div>
 
           {matchLoading ? (
@@ -310,7 +333,7 @@ export default function Home() {
             <div className="flex items-center justify-between px-6 sm:px-12 py-12">
               {/* 홈 팀 */}
               <div className="flex flex-col items-center w-5/12 text-center">
-                <div className="w-16 h-16 sm:w-20 h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
                   {homeLogoUrl ? <img src={homeLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🛡️</span>}
                 </div>
                 <span className="font-black text-base sm:text-xl text-amber-400 tracking-wide truncate w-full">{displayHomeTeam}</span>
@@ -327,7 +350,7 @@ export default function Home() {
 
               {/* 원정 팀 */}
               <div className="flex flex-col items-center w-5/12 text-center">
-                <div className="w-16 h-16 sm:w-20 h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
                   {awayLogoUrl ? <img src={awayLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🏃</span>}
                 </div>
                 <span className="font-black text-base sm:text-xl text-white tracking-wide truncate w-full">{displayAwayTeam}</span>
