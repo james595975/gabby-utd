@@ -50,7 +50,6 @@ export default function Home() {
 
     const fetchNews = async () => {
       try {
-        // 메인 홈에는 가독성을 위해 최신 소식 딱 2개만 깔끔하게 노출
         const { data, error } = await supabase
           .from('news')
           .select('*')
@@ -66,7 +65,7 @@ export default function Home() {
 
     const fetchMatchData = async () => {
       try {
-        // 🔥 최신 등록된 경기가 상단에 매핑되도록 id 내림차순 정렬 후 최상위 1건 바인딩
+        // 🔥 최신 등록된 1건의 경기를 완벽하게 땡겨옵니다.
         const { data, error } = await supabase
           .from('matches')
           .select('*')
@@ -88,7 +87,7 @@ export default function Home() {
     fetchMatchData();
   }, []);
 
-  // 🔥 포시션별 카드 전체 배경색 및 골키퍼(GK) 예외 처리 스타일 매칭 함수
+  // 포지션별 카드 전체 배경색 및 뱃지 스타일 매칭 함수
   const getPositionStyles = (pos: string) => {
     const cleanPos = pos ? pos.trim() : '';
     
@@ -106,7 +105,6 @@ export default function Home() {
         badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
       };
     }
-    // 🟡 골키퍼 디자인 테마 셋셋 (노란색/골드 그라디언트 톤 매핑)
     if (cleanPos.includes('골키퍼') || cleanPos.toLowerCase().includes('gk')) {
       return { 
         label: '골키퍼', 
@@ -114,7 +112,6 @@ export default function Home() {
         badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
       };
     }
-    // 기본 디폴트: 수비수 디펜더 스타일
     return { 
       label: cleanPos || '수비수', 
       cardClass: 'bg-gradient-to-br from-[#162a4c] to-[#0a1428] border-blue-500/20 hover:border-blue-500/40',
@@ -173,27 +170,33 @@ export default function Home() {
     }
   };
 
-  const displayHomeTeam = match?.home_team || '계비 유나이티드';
-  const displayAwayTeam = match?.away_team || '잔뇨 FC';
-  const displayHomeScore = match?.home_score ?? 7;
-  const displayAwayScore = match?.away_score ?? 2;
-  const displayDate = match?.date || '2026년 5월 29일';
+  // 🔥 [연동 핵심] DB 데이터가 있으면 쓰고, 로딩 중이거나 없을 때만 기본값을 띄웁니다.
+  const displayHomeTeam = match?.home_team || '계비 UTD';
+  const displayAwayTeam = match?.away_team || '상대 팀';
+  const displayHomeScore = match !== null ? match.home_score : 0;
+  const displayAwayScore = match !== null ? match.away_score : 0;
+  
+  // 날짜 데이터가 있으면 포맷팅하고 없으면 현재 연도 기준으로 기본 표시
+  const displayDate = match?.date 
+    ? new Date(match.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '최근 경기 기록';
+
   const homeLogoUrl = match?.home_logo ? match.home_logo.trim() : '';
   const awayLogoUrl = match?.away_logo ? match.away_logo.trim() : '';
 
   return (
     <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-20">
       
-      {/* 1. 히어로 구역 */}
+      {/* 1. 히어로 구역 (★ 어드민에서 변경한 최신 경기의 홈 로고가 여기에 실시간 반영됩니다) */}
       <section className="flex flex-col items-center justify-center text-center pt-24 pb-16 px-4">
         <div className="w-40 h-40 rounded-full bg-black/30 border-4 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-2xl mb-6">
-          {homeLogoUrl ? (
+          {homeLogoUrl && homeLogoUrl !== "🛡️" ? (
             <img src={homeLogoUrl} alt="Club Logo" className="w-full h-full object-cover" />
           ) : (
-            <span className="text-[#d4af37] text-xl font-black text-center">계비 UTD</span>
+            <span className="text-[#d4af37] text-2xl font-black text-center tracking-tighter">계비 UTD</span>
           )}
         </div>
-        <h1 className="text-4xl sm:text-5xl font-black tracking-wider mb-3">계비 UTD</h1>
+        <h1 className="text-4xl sm:text-5xl font-black tracking-wider mb-3">{displayHomeTeam}</h1>
         <p className="text-[#d4af37] text-lg sm:text-xl font-bold tracking-widest mb-4">열정과 함께, 끝까지 승리를 위하여</p>
         <p className="text-gray-300 text-sm">2026 구단 공식 프리미엄 대시보드</p>
       </section>
@@ -203,7 +206,7 @@ export default function Home() {
         <div className="bg-[#36101b] rounded-2xl p-6 sm:p-8 border border-white/5 shadow-xl text-center leading-relaxed text-gray-200 text-base max-w-2xl mx-auto">
           <strong className="text-[#d4af37] text-lg block mb-2">🛡️ 팀 소개</strong>
           <span className="font-medium text-gray-300">
-            <strong className="text-white">열정과 함께, 끝까지 승리를 위하여, 계비 UTD</strong>는 타협하지 않는 열정의 축구단입니다. <br/>
+            <strong className="text-white">열정과 함께, 끝까지 승리를 위하여, {displayHomeTeam}</strong>는 타협하지 않는 열정의 축구단입니다. <br/>
             언제나 최고의 경기력과 끈끈한 팀워크로 승리를 향해 전진합니다.
           </span>
         </div>
@@ -257,13 +260,12 @@ export default function Home() {
         )}
       </section>
 
-      {/* 4. 선수 명단 구역 (골키퍼 범례 가이드 추가 통합) */}
+      {/* 4. 선수 명단 구역 */}
       <section className="max-w-6xl mx-auto px-4 mb-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-3 text-[#e5c158]">
           👥 선수 명단
         </h2>
         
-        {/* 범례 가이드 라인 최적화 */}
         <div className="flex flex-wrap justify-center items-center gap-4 text-xs text-gray-300 mb-8 font-semibold bg-black/20 py-2 px-6 rounded-full w-fit mx-auto border border-white/5">
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-600" /> 스트라이커</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-600" /> 미드필더</span>
@@ -298,13 +300,14 @@ export default function Home() {
         )}
       </section>
 
-      {/* 5. 매치 스코어 보드 구역 (어드민 추가 등록 데이터 완벽 연동) */}
+      {/* 5. 매치 스코어 보드 구역 (★ 친선여부 및 매치 결과 배지까지 완벽 동적 연동) */}
       <section className="max-w-5xl mx-auto px-4 mb-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-6 text-[#e5c158]">
           🏆 경기 기록
         </h2>
         <div className="relative bg-[#36101b] rounded-3xl border border-white/10 shadow-2xl overflow-hidden max-w-3xl mx-auto">
           
+          {/* 어드민 친선 체크 여부 연동 */}
           <div className="absolute top-4 left-4 z-10">
             <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow ${
               match?.is_practice ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'
@@ -313,6 +316,7 @@ export default function Home() {
             </span>
           </div>
 
+          {/* 어드민 최종 결과 (승리/패배/무승부) 색상 연동 */}
           <div className="absolute top-4 right-4 z-10">
             <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow border ${
               match?.match_result === '패배' ? 'bg-red-600/30 text-red-400 border-red-500/40' : 
@@ -324,22 +328,22 @@ export default function Home() {
           </div>
 
           <div className="bg-black/30 text-center py-3 text-xs sm:text-sm font-bold text-gray-400 tracking-widest border-b border-white/5">
-            📅 {match?.date ? match.date : displayDate}
+            📅 {displayDate}
           </div>
 
           {matchLoading ? (
             <div className="text-center py-12 text-sm text-gray-400">경기 데이터를 분석 중입니다...</div>
           ) : (
             <div className="flex items-center justify-between px-6 sm:px-12 py-12">
-              {/* 홈 팀 */}
+              {/* 홈 팀 연동 */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
-                  {homeLogoUrl ? <img src={homeLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🛡️</span>}
+                  {homeLogoUrl && homeLogoUrl !== "🛡️" ? <img src={homeLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🛡️</span>}
                 </div>
                 <span className="font-black text-base sm:text-xl text-amber-400 tracking-wide truncate w-full">{displayHomeTeam}</span>
               </div>
 
-              {/* 대형 스코어 */}
+              {/* 대형 스코어 연동 */}
               <div className="flex flex-col items-center justify-center w-2/12 min-w-[100px]">
                 <div className="flex items-center justify-center gap-3">
                   <span className="text-3xl sm:text-5xl font-black text-[#d4af37] bg-black/40 px-4 py-2 rounded-xl shadow-md">{displayHomeScore}</span>
@@ -348,10 +352,10 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 원정 팀 */}
+              {/* 원정 팀 연동 */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
-                  {awayLogoUrl ? <img src={awayLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🏃</span>}
+                  {awayLogoUrl && awayLogoUrl !== "🛡️" ? <img src={awayLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🏃</span>}
                 </div>
                 <span className="font-black text-base sm:text-xl text-white tracking-wide truncate w-full">{displayAwayTeam}</span>
               </div>
@@ -422,7 +426,7 @@ export default function Home() {
       <footer className="max-w-md mx-auto text-center px-4 space-y-4">
         <div className="flex items-center justify-center gap-2 text-gray-300">
           <span className="text-2xl">🛡️</span> 
-          <span className="font-black text-base tracking-wider">계비 UTD</span>
+          <span className="font-black text-base tracking-wider">{displayHomeTeam}</span>
         </div>
         <p className="text-xs font-bold text-[#d4af37]/70 tracking-widest uppercase">
           열정과 함께, 끝까지 승리를 위하여.
@@ -438,7 +442,7 @@ export default function Home() {
           </a>
         </div>
         <p className="text-[11px] text-gray-500 pt-3">
-          © 2026 계비 UTD. All rights reserved.
+          © 2026 {displayHomeTeam}. All rights reserved.
         </p>
       </footer>
 
