@@ -43,8 +43,8 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 💎 [기본값 설정] 데이터베이스에 이미지 URL이 없거나 깨질 때 대체할 로고 주소
-  const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; // 🏠 우리 팀(Gabby UTD) 기본 로고
-  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; // 🏃 상대 팀 기본 로고
+  const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
+  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg';
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -169,6 +169,14 @@ export default function Home() {
     }
   };
 
+  // 🎯 부드러운 스크롤 이동 함수 추가
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const displayHomeTeam = match?.home_team || 'Gabby UTD';
   const displayAwayTeam = match?.away_team || '상대 팀';
   const displayHomeScore = match !== null ? match.home_score : 0;
@@ -179,11 +187,15 @@ export default function Home() {
   const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;
 
   return (
-    <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-20">
-      {/* 📌 [수정] 최상단 고정 네비게이션 바 - 축구공 대신 DEFAULT_HOME_LOGO 적용 */}
+    <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-20 selection:bg-[#d4af37] selection:text-black">
+      
+      {/* 📌 최상단 고정 네비게이션 바 */}
       <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2">
+          <div 
+            onClick={() => scrollToSection('hero')} 
+            className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2 cursor-pointer"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={homeLogoUrl} 
@@ -192,43 +204,58 @@ export default function Home() {
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
             <span>Gabby UTD</span>
-          </Link>
+          </div>
           <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
-            <Link href="/" className="text-[#e5c158] border-b-2 border-[#e5c158] pb-1">메인 홈</Link>
+            <div onClick={() => scrollToSection('hero')} className="text-[#e5c158] border-b-2 border-[#e5c158] pb-1 cursor-pointer">메인 홈</div>
             <Link href="/matches" className="hover:text-white transition-colors">MATCHES</Link>
           </div>
         </div>
       </nav>
 
-      {/* 1. 히어로 구역 */}
-      <section className="flex flex-col items-center justify-center text-center pt-16 pb-16 px-4">
-        <div className="w-40 h-40 rounded-full bg-black/30 border-4 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-2xl mb-6">
+      {/* 1. 히어로 구역 (화면을 꽉 채우도록 높이 조정 및 스크롤 버튼 추가) */}
+      <section id="hero" className="min-h-[85vh] flex flex-col items-center justify-center text-center px-4 pb-10 pt-10">
+        <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-2xl mb-6 relative">
+          <div className="absolute inset-0 rounded-full border border-[#d4af37]/30 m-2"></div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={homeLogoUrl} 
             alt="Club Logo" 
-            className="w-full h-full object-cover" 
+            className="w-full h-full object-cover z-10" 
             onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
           />
         </div>
-        <h1 className="text-4xl sm:text-5xl font-black tracking-wider mb-3">{displayHomeTeam}</h1>
-        <p className="text-[#d4af37] text-lg sm:text-xl font-bold tracking-widest mb-4">열정과 함께, 끝까지 승리를 위하여</p>
-        <p className="text-gray-300 text-sm">2026 구단 공식 프리미엄 대시보드</p>
+        <h1 className="text-5xl sm:text-6xl font-black tracking-tight mb-4">{displayHomeTeam}</h1>
+        <p className="text-[#d4af37] text-lg sm:text-xl font-bold tracking-widest mb-6">
+          열정과 함께, 끝까지 승리를 위하여
+        </p>
+        <p className="text-gray-300 text-sm mb-12">2026 구단 공식 프리미엄 대시보드</p>
+
+        {/* 🌟 스크롤 트리거 버튼 */}
+        <button 
+          onClick={() => scrollToSection('about')}
+          className="bg-[#d4af37] text-black font-bold py-3.5 px-8 rounded-full flex items-center gap-2 hover:bg-[#c4a030] transition-transform hover:scale-105 active:scale-95 shadow-xl"
+        >
+          구단 알아보기 
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
       </section>
 
-      {/* 2. 팀 소개 */}
-      <section className="max-w-4xl mx-auto px-4 mb-16">
-        <div className="bg-[#36101b] rounded-2xl p-6 sm:p-8 border border-white/5 shadow-xl text-center leading-relaxed text-gray-200 text-base max-w-2xl mx-auto">
-          <strong className="text-[#d4af37] text-lg block mb-2">🛡️ 팀 소개</strong>
-          <span className="font-medium text-gray-300">
-            <strong className="text-white">열정과 함께, 끝까지 승리를 위하여, {displayHomeTeam}</strong>는 타협하지 않는 열정의 축구단입니다. <br/>
-            언제나 최고의 경기력과 끈끈한 팀워크로 승리를 향해 전진합니다.
+      {/* 2. 팀 소개 (scroll-mt-24 추가하여 상단바 가림 방지) */}
+      <section id="about" className="max-w-4xl mx-auto px-4 mb-24 scroll-mt-24 pt-10">
+        <div className="bg-[#36101b] rounded-2xl p-8 sm:p-10 border border-white/5 shadow-xl text-center leading-relaxed text-gray-200 text-base max-w-2xl mx-auto">
+          <strong className="text-[#d4af37] text-sm font-bold tracking-[0.2em] block mb-3 uppercase">ABOUT TEAM</strong>
+          <span className="font-medium text-gray-300 leading-loose">
+            <strong className="text-white text-lg block mb-2">{displayHomeTeam}</strong> 
+            타협하지 않는 열정의 축구단입니다. <br/>
+            언제나 최고의 경기력과 끈끈한 팀워크로<br/>승리를 향해 전진합니다.
           </span>
         </div>
       </section>
 
       {/* 3. 최근 구단 소식 섹션 */}
-      <section className="max-w-4xl mx-auto px-4 mb-20">
+      <section id="news" className="max-w-4xl mx-auto px-4 mb-24 scroll-mt-20">
         <div className="flex justify-between items-center mb-6 max-w-2xl mx-auto">
           <h2 className="text-xl sm:text-2xl font-black text-[#e5c158] flex items-center gap-2">📰 최근 소식</h2>
           <Link href="/news" className="text-xs font-bold text-gray-400 hover:text-[#d4af37] transition-colors bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
@@ -277,7 +304,7 @@ export default function Home() {
       </section>
 
       {/* 4. 선수 명단 구역 */}
-      <section className="max-w-6xl mx-auto px-4 mb-20">
+      <section id="players" className="max-w-6xl mx-auto px-4 mb-24 scroll-mt-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-3 text-[#e5c158]">
           👥 선수 명단
         </h2>
@@ -316,7 +343,7 @@ export default function Home() {
       </section>
 
       {/* 5. 매치 스코어 보드 구역 */}
-      <section className="max-w-5xl mx-auto px-4 mb-20">
+      <section id="match" className="max-w-5xl mx-auto px-4 mb-24 scroll-mt-20">
         <div className="flex justify-between items-center mb-6 max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-black text-[#e5c158] flex items-center gap-2">
             🏆 최근 경기 결과
@@ -356,7 +383,6 @@ export default function Home() {
             <div className="text-center py-12 text-sm text-gray-400">경기 데이터를 분석 중입니다...</div>
           ) : (
             <div className="flex items-center justify-between px-6 sm:px-12 py-12">
-              {/* 🛡️ 홈 팀 구역 */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -370,7 +396,6 @@ export default function Home() {
                 <span className="font-black text-base sm:text-xl text-amber-400 tracking-wide truncate w-full">{displayHomeTeam}</span>
               </div>
 
-              {/* 🔢 대형 스코어 */}
               <div className="flex flex-col items-center justify-center w-2/12 min-w-[100px]">
                 <div className="flex items-center justify-center gap-3">
                   <span className="text-3xl sm:text-5xl font-black text-[#d4af37] bg-black/40 px-4 py-2 rounded-xl shadow-md">{displayHomeScore}</span>
@@ -379,7 +404,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 🏃 원정 팀 구역 */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -398,7 +422,7 @@ export default function Home() {
       </section>
 
       {/* 6. 연락하기 문의 폼 구역 */}
-      <section className="max-w-2xl mx-auto px-4 mb-20">
+      <section id="contact" className="max-w-2xl mx-auto px-4 mb-20 scroll-mt-20">
         <h2 className="text-2xl font-black text-center flex justify-center items-center gap-2 mb-6 text-[#e5c158]">
           ✉️ 연락하기
         </h2>
@@ -456,7 +480,7 @@ export default function Home() {
       </section>
 
       {/* 7. 푸터 구역 */}
-      <footer className="max-w-md mx-auto text-center px-4 space-y-4">
+      <footer className="max-w-md mx-auto text-center px-4 space-y-4 pt-10">
         <div className="flex items-center justify-center gap-2 text-gray-300">
           <span className="text-2xl">🛡️</span> 
           <span className="font-black text-base tracking-wider">{displayHomeTeam}</span>
