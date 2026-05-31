@@ -42,9 +42,8 @@ export default function Home() {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 💎 [기본값 설정] 데이터베이스에 이미지 URL이 없거나 깨질 때 대체할 로고 주소
-  const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
-  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg';
+  const DEFAULT_HOME_LOGO = 'https://gyebi-utd-logo-url-here.png'; 
+  const DEFAULT_AWAY_LOGO = 'https://away-team-logo-url-here.png';
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -169,7 +168,6 @@ export default function Home() {
     }
   };
 
-  // 🎯 부드러운 스크롤 이동 함수 추가
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -212,7 +210,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 1. 히어로 구역 (화면을 꽉 채우도록 높이 조정 및 스크롤 버튼 추가) */}
+      {/* 1. 히어로 구역 */}
       <section id="hero" className="min-h-[85vh] flex flex-col items-center justify-center text-center px-4 pb-10 pt-10">
         <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-2xl mb-6 relative">
           <div className="absolute inset-0 rounded-full border border-[#d4af37]/30 m-2"></div>
@@ -230,7 +228,6 @@ export default function Home() {
         </p>
         <p className="text-gray-300 text-sm mb-12">2026 구단 공식 프리미엄 대시보드</p>
 
-        {/* 🌟 스크롤 트리거 버튼 */}
         <button 
           onClick={() => scrollToSection('about')}
           className="bg-[#d4af37] text-black font-bold py-3.5 px-8 rounded-full flex items-center gap-2 hover:bg-[#c4a030] transition-transform hover:scale-105 active:scale-95 shadow-xl"
@@ -242,7 +239,7 @@ export default function Home() {
         </button>
       </section>
 
-      {/* 2. 팀 소개 (scroll-mt-24 추가하여 상단바 가림 방지) */}
+      {/* 2. 팀 소개 */}
       <section id="about" className="max-w-4xl mx-auto px-4 mb-24 scroll-mt-24 pt-10">
         <div className="bg-[#36101b] rounded-2xl p-8 sm:p-10 border border-white/5 shadow-xl text-center leading-relaxed text-gray-200 text-base max-w-2xl mx-auto">
           <strong className="text-[#d4af37] text-sm font-bold tracking-[0.2em] block mb-3 uppercase">ABOUT TEAM</strong>
@@ -482,7 +479,16 @@ export default function Home() {
       {/* 7. 푸터 구역 */}
       <footer className="max-w-md mx-auto text-center px-4 space-y-4 pt-10">
         <div className="flex items-center justify-center gap-2 text-gray-300">
-          <span className="text-2xl">🛡️</span> 
+          {/* 🛡️ 방패 이모지 대신 구단 로고 이미지 사용 */}
+          <div className="w-8 h-8 rounded-full bg-black/20 p-0.5 flex items-center justify-center overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={homeLogoUrl} 
+              alt="Footer Club Logo" 
+              className="w-full h-full object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
+            />
+          </div>
           <span className="font-black text-base tracking-wider">{displayHomeTeam}</span>
         </div>
         <p className="text-xs font-bold text-[#d4af37]/70 tracking-widest uppercase">
