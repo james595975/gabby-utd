@@ -162,7 +162,7 @@ export default function NewsPage() {
 
       {/* 하단 푸터 구역 */}
       <footer className="max-w-md mx-auto text-center px-4 mt-24 space-y-3 opacity-60">
-        <p className="text-xs font-bold text-[#d4af37]/70 tracking-widest uppercase">WE PLAY. WE FIGHT. WE WIN.</p>
+        <p className="text-xs font-bold text-[#d4af37]/70 tracking-widest uppercase">언제나 함꼐, 끝까지 승리를 위하여</p>
         <p className="text-[11px] text-gray-500">© 2026 계비 UTD. All rights reserved.</p>
       </footer>
 

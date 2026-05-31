@@ -53,12 +53,15 @@ export default function AdminPage() {
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
 
   // 구단 소식 등록 및 수정 관련 상태
-  const [editingNewsId, setEditingNewsId] = useState<number | null>(null); // 🔥 수정 중인 소식 ID
+  const [editingNewsId, setEditingNewsId] = useState<number | null>(null);
   const [newsTitle, setNewsTitle] = useState('');
   const [newsContent, setNewsContent] = useState('');
   const [newsTag, setNewsTag] = useState('공지');
   const [newsImageUrl, setNewsImageUrl] = useState('');
   const [newsLinkUrl, setNewsLinkUrl] = useState('');
+
+  // 🔥 문의/신청 리스트 분류 필터 상태 추가 ('all' | 'join' | 'inquiry')
+  const [messageFilter, setMessageFilter] = useState<'all' | 'join' | 'inquiry'>('all');
 
   useEffect(() => {
     const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
@@ -71,7 +74,7 @@ export default function AdminPage() {
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
-    preventDefault(e);
+    e.preventDefault();
     const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
     if (password === adminPassword) {
       localStorage.setItem('gb_admin_authenticated', 'true');
@@ -81,8 +84,6 @@ export default function AdminPage() {
       alert('비밀번호가 일치하지 않습니다.');
     }
   };
-
-  const preventDefault = (e: React.FormEvent) => e.preventDefault();
 
   const handleLogout = () => {
     localStorage.removeItem('gb_admin_authenticated');
@@ -183,7 +184,6 @@ export default function AdminPage() {
     };
 
     if (editingNewsId) {
-      // 🔥 수정 모드일 때
       const { error } = await supabase
         .from('news')
         .update(payload)
@@ -197,7 +197,6 @@ export default function AdminPage() {
         alert('소식 수정 실패: ' + error.message);
       }
     } else {
-      // ✨ 신규 작성 모드일 때
       const { error } = await supabase
         .from('news')
         .insert([payload]);
@@ -242,6 +241,22 @@ export default function AdminPage() {
     }
   };
 
+  // 🔥 문의 메세지 삭제 처리 기능 추가
+  const handleDeleteMessage = async (id: number, name: string) => {
+    if (!confirm(`"${name}" 님의 문의/지원 내역을 데이터베이스에서 완전히 삭제하시겠습니까?`)) return;
+    try {
+      const { error } = await supabase.from('messages').delete().eq('id', id);
+      if (!error) {
+        alert('문의 내역이 영구 삭제되었습니다.');
+        fetchData();
+      } else {
+        alert('삭제 실패: ' + error.message);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const startEdit = (match: MatchData) => {
     setEditingMatchId(match.id);
     setHomeScore(match.home_score);
@@ -253,6 +268,12 @@ export default function AdminPage() {
     setIsPractice(match.is_practice || false);
     setMatchResult(match.match_result || '무승부');
   };
+
+  // 🔥 필터링 필터 로직 적용 변수
+  const filteredMessages = messages.filter((msg) => {
+    if (messageFilter === 'all') return true;
+    return msg.type === messageFilter;
+  });
 
   if (!isAuthenticated) {
     return (
@@ -351,7 +372,6 @@ export default function AdminPage() {
             {editingNewsId ? '📝 선택한 구단 소식 수정 중' : '📰 구단 소식 포스팅 관리'} ({news.length}건)
           </h2>
           
-          {/* 소식 작성/수정 유니버설 폼 */}
           <form onSubmit={handleSaveNews} className={`space-y-3 p-4 rounded-xl border ${editingNewsId ? 'bg-amber-500/5 border-amber-500/30' : 'bg-black/20 border-white/5'}`}>
             {editingNewsId && (
               <div className="text-xs text-amber-400 font-bold flex justify-between items-center bg-amber-500/10 p-2 rounded-lg mb-2">
@@ -403,7 +423,6 @@ export default function AdminPage() {
             </div>
           </form>
 
-          {/* 발행된 구단 소식 목록 내역 */}
           <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
             {news.map((item) => (
               <div key={item.id} className={`border p-3 rounded-xl flex justify-between items-center gap-4 text-xs transition-colors ${editingNewsId === item.id ? 'bg-amber-500/10 border-amber-500/40' : 'bg-black/10 border-white/5'}`}>
@@ -417,12 +436,8 @@ export default function AdminPage() {
                   <p className="font-bold text-gray-200 truncate">{item.title}</p>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
-                  <button type="button" onClick={() => startEditNews(item)} className="text-[10px] text-amber-400 bg-amber-950/20 hover:bg-amber-900/40 px-2.5 py-1.5 rounded-lg border border-amber-500/10 font-bold">
-                    수정
-                  </button>
-                  <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2.5 py-1.5 rounded-lg border border-red-500/10 font-bold">
-                    삭제
-                  </button>
+                  <button type="button" onClick={() => startEditNews(item)} className="text-[10px] text-amber-400 bg-amber-950/20 hover:bg-amber-900/40 px-2.5 py-1.5 rounded-lg border border-amber-500/10 font-bold">수정</button>
+                  <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2.5 py-1.5 rounded-lg border border-red-500/10 font-bold">삭제</button>
                 </div>
               </div>
             ))}
@@ -457,25 +472,48 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* [4구역] 접수된 문의 메세지 내역 */}
-        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md">
-          <h2 className="text-base sm:text-lg font-bold mb-4">✉️ 접수된 문의/신청 리스트 ({messages.length}건)</h2>
-          {messages.length === 0 ? (
-            <p className="text-center text-xs text-gray-400 py-6">수신된 메시지가 없습니다.</p>
+        {/* 🔥 [4구역] 분류 및 삭제 기능이 대폭 보완된 문의 메세지 내역 */}
+        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/5 pb-3">
+            <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">✉️ 접수된 문의/신청 리스트 ({filteredMessages.length}건)</h2>
+            
+            {/* 🛠️ 세련된 분류 필터 컨트롤러 탭 추가 */}
+            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 self-start sm:self-auto text-[11px] font-bold">
+              <button type="button" onClick={() => setMessageFilter('all')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'all' ? 'bg-[#d4af37] text-black' : 'text-gray-400 hover:text-white'}`}>전체보기</button>
+              <button type="button" onClick={() => setMessageFilter('join')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'join' ? 'bg-amber-500 text-black' : 'text-gray-400 hover:text-white'}`}>입단지원</button>
+              <button type="button" onClick={() => setMessageFilter('inquiry')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'inquiry' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>일반문의</button>
+            </div>
+          </div>
+
+          {filteredMessages.length === 0 ? (
+            <p className="text-center text-xs text-gray-400 py-10 bg-black/10 rounded-2xl border border-white/5">선택한 분류에 수신된 메시지가 없습니다.</p>
           ) : (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-              {messages.map((msg) => (
-                <div key={msg.id} className="bg-black/20 border border-white/5 p-3.5 rounded-xl text-xs space-y-1.5">
-                  <div className="flex justify-between items-center flex-wrap gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-black ${msg.type === 'join' ? 'bg-amber-400 text-black' : 'bg-blue-500 text-white'}`}>
-                        {msg.type === 'join' ? '입단 지원' : '일반 문의'}
-                      </span>
-                      <strong className="text-gray-200 text-sm">{msg.name}</strong>
+            <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+              {filteredMessages.map((msg) => (
+                <div key={msg.id} className="bg-black/20 border border-white/5 p-4 rounded-xl text-xs space-y-2 relative group hover:border-white/10 transition-colors">
+                  
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-black ${msg.type === 'join' ? 'bg-amber-400 text-black' : 'bg-blue-500 text-white'}`}>
+                          {msg.type === 'join' ? '입단 지원' : '일반 문의'}
+                        </span>
+                        <strong className="text-gray-100 text-sm">{msg.name}</strong>
+                      </div>
+                      <span className="text-[10px] text-gray-500 block font-mono">{msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}</span>
                     </div>
-                    <span className="text-[10px] text-gray-500 font-mono">{msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}</span>
+
+                    {/* 🗑️ 문의 개별 영구 삭제 버튼 추가 */}
+                    <button 
+                      type="button" 
+                      onClick={() => handleDeleteMessage(msg.id, msg.name)}
+                      className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/50 border border-red-500/20 px-2 py-1 rounded-lg font-bold shadow-sm transition-colors"
+                    >
+                      문의 삭제
+                    </button>
                   </div>
-                  <p className="text-gray-300 bg-black/10 p-2.5 rounded border border-white/5 whitespace-pre-wrap leading-relaxed break-all">
+
+                  <p className="text-gray-300 bg-black/20 p-3 rounded-xl border border-white/5 whitespace-pre-wrap leading-relaxed break-all font-sans select-text">
                     {msg.content}
                   </p>
                 </div>
