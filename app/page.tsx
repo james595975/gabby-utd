@@ -46,7 +46,7 @@ export default function Home() {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✨ 선수 선택 상태 관리 (클릭 시 강조 효과용)
+  // 선수 선택 상태 관리 (클릭 시 강조 효과용)
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
@@ -207,10 +207,12 @@ export default function Home() {
       
       {/* 📌 최상단 고정 네비게이션 바 */}
       <nav className="border-b border-white/5 bg-black/60 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
+        <div className="max-w-5xl mx-auto flex justify-between items-center gap-4">
+          
+          {/* 구단 로고 및 이름 */}
           <div 
             onClick={() => scrollToSection('hero')} 
-            className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2 cursor-pointer"
+            className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -221,10 +223,30 @@ export default function Home() {
             />
             <span>Gabby UTD</span>
           </div>
-          <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
+
+          {/* ✨ 수정본: 이미지 + 글자 조합의 스폰서 영역 */}
+          <div className="hidden md:flex items-center gap-2.5 text-[11px] font-bold text-gray-400 bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5 shadow-inner">
+            <span className="text-gray-400 text-[10px] tracking-wide font-medium whitespace-nowrap">Gabby UTD Sponsored by</span>
+            <span className="w-px h-3 bg-white/10"></span>
+            <div className="flex items-center gap-1.5">
+              {/* 💡 기호에 맞춰 public 폴더 내 이미지 경로 또는 외부 URL 주소로 교체해 주세요 */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* <img 
+                src="https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/sponsor%20icon/spotify.png" 
+                alt="Sponsor Logo" 
+                className="w-4 h-4 object-contain rounded-sm"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} 
+              /> */}
+              <span className="text-[#e5c158] font-black tracking-wider uppercase">YOUR BRAND HERE</span>
+            </div>
+          </div>
+
+          {/* 우측 네비게이션 메뉴 링크 */}
+          <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0">
             <div onClick={() => scrollToSection('hero')} className="text-[#e5c158] border-b-2 border-[#e5c158] pb-1 cursor-pointer">메인 홈</div>
             <Link href="/matches" className="hover:text-white transition-colors">MATCHES</Link>
           </div>
+
         </div>
       </nav>
 
@@ -322,7 +344,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. 선수 명단 구역 (선택 강조 기능 포함) */}
+      {/* 4. 선수 명단 구역 */}
       <section id="players" className="bg-[#330d19] w-full py-20 border-t border-b border-black/10">
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-3 text-[#e5c158]">
