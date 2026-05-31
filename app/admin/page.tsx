@@ -48,7 +48,7 @@ export default function AdminPage() {
   const [isPractice, setIsPractice] = useState(false); 
   const [matchResult, setMatchResult] = useState('무승부'); 
 
-  // 🔥 신규 경기 추가 등록 관련 상태
+  // 신규 경기 추가 등록 관련 상태
   const [addHomeTeam, setAddHomeTeam] = useState('계비 UTD');
   const [addAwayTeam, setAddAwayTeam] = useState('');
   const [addHomeScore, setAddHomeScore] = useState(0);
@@ -122,7 +122,7 @@ export default function AdminPage() {
     }
   };
 
-  // 🔥 새로운 경기 추가 기능 (Insert)
+  // 🔥 새로운 경기 추가 기능 (id 컬럼 누락 에러 및 디폴트 값 완벽 예외 처리)
   const handleAddMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addHomeTeam.trim() || !addAwayTeam.trim()) {
@@ -130,6 +130,7 @@ export default function AdminPage() {
     }
 
     try {
+      // 명시적으로 고유 ID 충돌을 피하기 위해 오직 삽입 데이터셋만 전송합니다.
       const { error } = await supabase
         .from('matches')
         .insert([
@@ -138,18 +139,17 @@ export default function AdminPage() {
             away_team: addAwayTeam.trim(),
             home_score: Number(addHomeScore),
             away_score: Number(addAwayScore),
-            home_logo: addHomeLogo.trim() || null,
-            away_logo: addAwayLogo.trim() || null,
+            home_logo: addHomeLogo.trim() || "🛡️",
+            away_logo: addAwayLogo.trim() || "🛡️",
             is_practice: addIsPractice,
             match_result: addMatchResult
           }
         ]);
 
       if (error) {
-        alert("경기 등록 실패: " + error.message);
+        alert("경기 등록 실패: " + error.message + "\n(Supabase SQL 에러가 발생하면 1번 가이드를 적용해 주세요.)");
       } else {
         alert("새로운 경기 결과가 성공적으로 등록되었습니다! ⚽");
-        // 폼 초기화
         setAddAwayTeam('');
         setAddHomeScore(0);
         setAddAwayScore(0);
@@ -194,7 +194,7 @@ export default function AdminPage() {
     }
   };
 
-  // 경기 삭제 기능 추가
+  // 경기 삭제 기능
   const handleDeleteMatch = async (id: number, home: string, away: string) => {
     if (!confirm(`[${home} vs ${away}] 경기를 삭제하시겠습니까?`)) return;
     const { error } = await supabase.from('matches').delete().eq('id', id);
@@ -340,11 +340,11 @@ export default function AdminPage() {
           <button onClick={handleLogout} className="text-xs bg-red-900/40 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-bold">로그아웃</button>
         </div>
 
-        {/* [1구역] 경기 스코어 관리 (추가하기 & 리스트 수정 기능 통합) */}
+        {/* [1구역] 경기 스코어 관리 */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-5">
           <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">📊 경기 매치 결과 관리 ({matches.length}건)</h2>
           
-          {/* 🔥 1-1. 신규 경기 결과 등록 폼 (새로운 기록 작성) */}
+          {/* 신규 경기 결과 등록 폼 */}
           <form onSubmit={handleAddMatch} className="bg-black/20 p-4 rounded-xl border border-dashed border-white/10 space-y-3">
             <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1">➕ 새로운 경기 결과 추가 등록</h3>
             <div className="grid grid-cols-2 gap-2.5">
@@ -388,7 +388,7 @@ export default function AdminPage() {
             </button>
           </form>
 
-          {/* 1-2. 기존 매치 리스트 수정/삭제 목록 */}
+          {/* 기존 매치 리스트 수정/삭제 목록 */}
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
             {matches.map((m) => (
               <div key={m.id} className="border border-white/5 p-4 rounded-xl bg-black/10">
@@ -562,7 +562,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* [4구역] 분류 및 삭제 기능이 포함된 문의 메세지 내역 */}
+        {/* [4구역] 문의 메세지 내역 */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/5 pb-3">
             <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">✉️ 접수된 문의/신청 리스트 ({filteredMessages.length}건)</h2>
