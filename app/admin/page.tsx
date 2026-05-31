@@ -23,7 +23,7 @@ interface NewsItem {
   title: string;
   content: string;
   image_url?: string;
-  link_url?: string; // 🔥 이동 링크 인터페이스 추가
+  link_url?: string;
   tag: string;
   created_at: string;
 }
@@ -52,12 +52,13 @@ export default function AdminPage() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
 
-  // 신규 소식 등록 관련 상태
+  // 구단 소식 등록 및 수정 관련 상태
+  const [editingNewsId, setEditingNewsId] = useState<number | null>(null); // 🔥 수정 중인 소식 ID
   const [newsTitle, setNewsTitle] = useState('');
   const [newsContent, setNewsContent] = useState('');
   const [newsTag, setNewsTag] = useState('공지');
   const [newsImageUrl, setNewsImageUrl] = useState('');
-  const [newsLinkUrl, setNewsLinkUrl] = useState(''); // 🔥 이동 링크 상태 추가
+  const [newsLinkUrl, setNewsLinkUrl] = useState('');
 
   useEffect(() => {
     const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
@@ -70,7 +71,7 @@ export default function AdminPage() {
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+    preventDefault(e);
     const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
     if (password === adminPassword) {
       localStorage.setItem('gb_admin_authenticated', 'true');
@@ -80,6 +81,8 @@ export default function AdminPage() {
       alert('비밀번호가 일치하지 않습니다.');
     }
   };
+
+  const preventDefault = (e: React.FormEvent) => e.preventDefault();
 
   const handleLogout = () => {
     localStorage.removeItem('gb_admin_authenticated');
@@ -91,19 +94,15 @@ export default function AdminPage() {
     try {
       setIsLoading(false);
       
-      // 1. 선수 명단 가져오기
       const { data: pData } = await supabase.from('players').select('*').order('id', { ascending: true });
       if (pData) setPlayers(pData);
 
-      // 2. 관리자 메시지 가져오기
       const { data: mData } = await supabase.from('messages').select('*').order('id', { ascending: false });
       if (mData) setMessages(mData);
 
-      // 3. 경기 정보 가져오기
       const { data: matchData, error: matchError } = await supabase.from('matches').select('*');
       if (matchData && !matchError) setMatches(matchData);
 
-      // 4. 구단 소식 가져오기
       const { data: newsData, error: newsError } = await supabase.from('news').select('*').order('id', { ascending: false });
       if (newsData && !newsError) setNews(newsData);
 
@@ -168,43 +167,79 @@ export default function AdminPage() {
     if (!error) fetchData();
   };
 
-  // 소식 추가 기능 (link_url 바인딩 처리 완료)
-  const handleAddNews = async (e: React.FormEvent) => {
+  // 소식 등록 및 수정 제출 통합 핸들러
+  const handleSaveNews = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsTitle.trim() || !newsContent.trim()) {
       return alert('제목과 내용은 필수 항목입니다.');
     }
 
-    const { error } = await supabase
-      .from('news')
-      .insert([
-        {
-          title: newsTitle.trim(),
-          content: newsContent.trim(),
-          tag: newsTag,
-          image_url: newsImageUrl.trim() || null,
-          link_url: newsLinkUrl.trim() || null // 🔥 대시보드 링크 컬럼 저장
-        }
-      ]);
+    const payload = {
+      title: newsTitle.trim(),
+      content: newsContent.trim(),
+      tag: newsTag,
+      image_url: newsImageUrl.trim() || null,
+      link_url: newsLinkUrl.trim() || null
+    };
 
-    if (!error) {
-      alert('새로운 소식이 성공적으로 등록되었습니다! 📰');
-      setNewsTitle('');
-      setNewsContent('');
-      setNewsImageUrl('');
-      setNewsLinkUrl(''); // 리셋
-      setNewsTag('공지');
-      fetchData();
+    if (editingNewsId) {
+      // 🔥 수정 모드일 때
+      const { error } = await supabase
+        .from('news')
+        .update(payload)
+        .eq('id', editingNewsId);
+
+      if (!error) {
+        alert('구단 소식이 성공적으로 수정되었습니다! 📝');
+        cancelNewsEdit();
+        fetchData();
+      } else {
+        alert('소식 수정 실패: ' + error.message);
+      }
     } else {
-      alert('소식 등록 실패: ' + error.message);
+      // ✨ 신규 작성 모드일 때
+      const { error } = await supabase
+        .from('news')
+        .insert([payload]);
+
+      if (!error) {
+        alert('새로운 소식이 성공적으로 등록되었습니다! 📰');
+        cancelNewsEdit();
+        fetchData();
+      } else {
+        alert('소식 등록 실패: ' + error.message);
+      }
     }
+  };
+
+  // 소식 수정 시작 세팅
+  const startEditNews = (item: NewsItem) => {
+    setEditingNewsId(item.id);
+    setNewsTitle(item.title);
+    setNewsContent(item.content);
+    setNewsTag(item.tag);
+    setNewsImageUrl(item.image_url || '');
+    setNewsLinkUrl(item.link_url || '');
+  };
+
+  // 소식 입력 폼 초기화
+  const cancelNewsEdit = () => {
+    setEditingNewsId(null);
+    setNewsTitle('');
+    setNewsContent('');
+    setNewsTag('공지');
+    setNewsImageUrl('');
+    setNewsLinkUrl('');
   };
 
   // 소식 삭제 기능
   const handleDeleteNews = async (id: number, title: string) => {
     if (!confirm(`"${title}" 소식을 삭제하시겠습니까? 홈 화면과 소식 페이지에서 모두 내려갑니다.`)) return;
     const { error } = await supabase.from('news').delete().eq('id', id);
-    if (!error) fetchData();
+    if (!error) {
+      if (editingNewsId === id) cancelNewsEdit();
+      fetchData();
+    }
   };
 
   const startEdit = (match: MatchData) => {
@@ -310,12 +345,21 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* [2구역] 구단 소식 게시판 포스팅 관리 (이동 링크 입력 폼 통합) */}
+        {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
-          <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">📰 구단 소식 포스팅 관리 ({news.length}건)</h2>
+          <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+            {editingNewsId ? '📝 선택한 구단 소식 수정 중' : '📰 구단 소식 포스팅 관리'} ({news.length}건)
+          </h2>
           
-          {/* 소식 글쓰기 폼 */}
-          <form onSubmit={handleAddNews} className="space-y-3 bg-black/20 p-4 rounded-xl border border-white/5">
+          {/* 소식 작성/수정 유니버설 폼 */}
+          <form onSubmit={handleSaveNews} className={`space-y-3 p-4 rounded-xl border ${editingNewsId ? 'bg-amber-500/5 border-amber-500/30' : 'bg-black/20 border-white/5'}`}>
+            {editingNewsId && (
+              <div className="text-xs text-amber-400 font-bold flex justify-between items-center bg-amber-500/10 p-2 rounded-lg mb-2">
+                <span>⚠️ 현재 ID: {editingNewsId}번 글을 수정 중입니다.</span>
+                <button type="button" onClick={cancelNewsEdit} className="text-white underline bg-black/30 px-2 py-0.5 rounded">수정 취소</button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <label className="block text-[10px] text-gray-400 mb-1">소식 제목 *</label>
@@ -336,10 +380,9 @@ export default function AdminPage() {
                 <label className="block text-[10px] text-gray-400 mb-1">대표 이미지 주소 (선택)</label>
                 <input type="text" value={newsImageUrl} onChange={(e) => setNewsImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
               </div>
-              {/* 🔥 새롭게 연동한 클릭 시 연결 링크 입력 칸 */}
               <div>
                 <label className="block text-[10px] text-amber-400 font-bold mb-1">🔗 클릭 시 이동할 상세 링크 주소 (선택)</label>
-                <input type="text" value={newsLinkUrl} onChange={(e) => setNewsLinkUrl(e.target.value)} placeholder="https://instagram.com/... (인스타 링크 등)" className="w-full bg-black/40 border border-amber-500/20 focus:border-[#d4af37] rounded-xl p-2.5 text-xs text-white focus:outline-none" />
+                <input type="text" value={newsLinkUrl} onChange={(e) => setNewsLinkUrl(e.target.value)} placeholder="https://instagram.com/... (링크 주소)" className="w-full bg-black/40 border border-amber-500/20 focus:border-[#d4af37] rounded-xl p-2.5 text-xs text-white focus:outline-none" />
               </div>
             </div>
 
@@ -348,27 +391,39 @@ export default function AdminPage() {
               <textarea rows={3} value={newsContent} onChange={(e) => setNewsContent(e.target.value)} placeholder="구단원들에게 공유할 상세 내용을 적어주세요." className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37] resize-none"></textarea>
             </div>
 
-            <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-black font-black py-2.5 rounded-xl text-xs transition-colors">
-              🚀 작성한 소식 발행하기
-            </button>
+            <div className="flex gap-2">
+              <button type="submit" className={`flex-1 font-black py-2.5 rounded-xl text-xs transition-colors text-black ${editingNewsId ? 'bg-amber-400 hover:bg-amber-500' : 'bg-[#d4af37] hover:bg-[#c4a030]'}`}>
+                {editingNewsId ? '💾 수정 사항 저장하기 (Update)' : '🚀 새로운 소식 발행하기 (Publish)'}
+              </button>
+              {editingNewsId && (
+                <button type="button" onClick={cancelNewsEdit} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold">
+                  취소
+                </button>
+              )}
+            </div>
           </form>
 
-          {/* 발행된 소식 리스트 내역 */}
+          {/* 발행된 구단 소식 목록 내역 */}
           <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
             {news.map((item) => (
-              <div key={item.id} className="bg-black/10 border border-white/5 p-3 rounded-xl flex justify-between items-center gap-4 text-xs">
+              <div key={item.id} className={`border p-3 rounded-xl flex justify-between items-center gap-4 text-xs transition-colors ${editingNewsId === item.id ? 'bg-amber-500/10 border-amber-500/40' : 'bg-black/10 border-white/5'}`}>
                 <div className="truncate space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] bg-black/40 text-gray-400 px-1.5 py-0.5 rounded font-mono">ID: {item.id}</span>
                     <span className="text-[10px] text-amber-300 font-bold">[{item.tag}]</span>
-                    {item.link_url && <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1 rounded border border-amber-500/20">🔗 링크 연동됨</span>}
+                    {item.link_url && <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1 rounded border border-amber-500/20">🔗 링크 있음</span>}
                     <span className="text-gray-400 text-[10px]">{new Date(item.created_at).toLocaleDateString()}</span>
                   </div>
                   <p className="font-bold text-gray-200 truncate">{item.title}</p>
                 </div>
-                <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-3 py-1.5 rounded-lg border border-red-500/10 font-bold flex-shrink-0">
-                  삭제
-                </button>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button type="button" onClick={() => startEditNews(item)} className="text-[10px] text-amber-400 bg-amber-950/20 hover:bg-amber-900/40 px-2.5 py-1.5 rounded-lg border border-amber-500/10 font-bold">
+                    수정
+                  </button>
+                  <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2.5 py-1.5 rounded-lg border border-red-500/10 font-bold">
+                    삭제
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -378,7 +433,6 @@ export default function AdminPage() {
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md">
           <h2 className="text-base sm:text-lg font-bold mb-4">👥 구단 선수 명단 관리 ({players.length}명)</h2>
           
-          {/* 선수 등록 폼 */}
           <form onSubmit={handleAddPlayer} className="flex gap-2 mb-4 flex-wrap sm:flex-nowrap">
             <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="선수 이름 입력" className="flex-1 min-w-[150px] bg-black/20 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
             <select value={newPlayerPosition} onChange={(e) => setNewPlayerPosition(e.target.value)} className="bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37] cursor-pointer">
@@ -390,7 +444,6 @@ export default function AdminPage() {
             <button type="submit" className="bg-[#d4af37] text-black font-black px-4 py-2.5 rounded-xl text-xs hover:bg-[#c4a030] whitespace-nowrap w-full sm:w-auto">➕ 선수 등록</button>
           </form>
 
-          {/* 등록된 선수 리스트 리포트 */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {players.map((p) => (
               <div key={p.id} className="bg-black/20 border border-white/5 p-2.5 rounded-xl flex items-center justify-between gap-1">
