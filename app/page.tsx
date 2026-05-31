@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
-// 🚨 메일 전송용 서버 액션 임포트 (경로 주의: app/actions.ts 기준)
+// 서버 액션 임포트 (경로가 다를 경우 @/app/actions 등으로 수정해주세요)
 import { sendInquiryEmail } from './actions'; 
 
 interface Player { id: number; name: string; position: string; }
@@ -36,6 +36,8 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
+  
+  // 로딩 및 폼 상태 관리
   const [matchLoading, setMatchLoading] = useState<boolean>(true);
   const [newsLoading, setNewsLoading] = useState<boolean>(true);
   const [senderName, setSenderName] = useState('');
@@ -43,6 +45,9 @@ export default function Home() {
   const [phone, setPhone] = useState(''); 
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ✨ 선수 선택 상태 관리 (클릭 시 강조 효과용)
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
   const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg';
@@ -129,7 +134,6 @@ export default function Home() {
     }
   };
 
-  // ⭐️ 백엔드 이메일 전송 기능으로 업그레이드 된 메시지 발송 함수
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!senderName.trim() || !email.trim() || !phone.trim() || !content.trim()) {
@@ -138,7 +142,7 @@ export default function Home() {
     try {
       setIsSubmitting(true);
       
-      // 1. 기존 방식: Supabase DB에 백업 저장
+      // 1. Supabase DB에 백업 저장
       const { error } = await supabase
         .from('messages')
         .insert([
@@ -154,7 +158,7 @@ export default function Home() {
         return;
       }
 
-      // 2. 신규 방식: 서버 액션을 호출해 백엔드에서 메일 발송
+      // 2. 서버 액션을 호출해 백엔드에서 메일 발송
       const emailResult = await sendInquiryEmail({
         type: activeTab,
         name: senderName.trim(),
@@ -224,7 +228,7 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 1. 히어로 구역 [배경: 오리지널 와인] */}
+      {/* 1. 히어로 구역 */}
       <section id="hero" className="bg-[#4a1525] min-h-[80vh] flex flex-col items-center justify-center text-center px-4 py-16">
         <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-2xl mb-6 relative">
           <div className="absolute inset-0 rounded-full border border-[#d4af37]/30 m-2"></div>
@@ -253,7 +257,7 @@ export default function Home() {
         </button>
       </section>
 
-      {/* 2. 팀 소개 구역 [배경: 다크 와인] */}
+      {/* 2. 팀 소개 구역 */}
       <section id="about" className="bg-[#330d19] w-full py-20 border-t border-b border-black/10">
         <div className="max-w-2xl mx-auto px-4">
           <div className="bg-[#240811] rounded-2xl p-8 sm:p-10 border border-white/5 shadow-xl text-center leading-relaxed text-gray-200 text-base">
@@ -267,7 +271,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. 최근 구단 소식 섹션 [배경: 오리지널 와인] */}
+      {/* 3. 최근 구단 소식 섹션 */}
       <section id="news" className="bg-[#4a1525] w-full py-20">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
@@ -318,7 +322,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. 선수 명단 구역 [배경: 다크 와인] */}
+      {/* 4. 선수 명단 구역 (선택 강조 기능 포함) */}
       <section id="players" className="bg-[#330d19] w-full py-20 border-t border-b border-black/10">
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-3 text-[#e5c158]">
@@ -337,15 +341,22 @@ export default function Home() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
               {players.map((player) => {
                 const posStyle = getPositionStyles(player.position);
+                const isSelected = selectedPlayerId === player.id; 
+
                 return (
                   <div 
                     key={player.id} 
-                    className={`rounded-2xl p-6 sm:p-7 flex flex-col items-center border shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${posStyle.cardClass}`}
+                    onClick={() => setSelectedPlayerId(isSelected ? null : player.id)} 
+                    className={`cursor-pointer rounded-2xl p-6 sm:p-7 flex flex-col items-center border shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${posStyle.cardClass} ${
+                      isSelected ? 'ring-2 ring-[#d4af37] scale-105 bg-black/40' : '' 
+                    }`}
                   >
                     <div className="w-16 h-16 rounded-full border-2 border-white/10 flex items-center justify-center mb-4 text-3xl bg-black/30 text-white/80 shadow-md">
                       👤
                     </div>
-                    <div className="font-black text-lg sm:text-xl mb-3 text-white tracking-wide truncate w-full text-center">
+                    <div className={`font-black text-lg sm:text-xl mb-3 tracking-wide truncate w-full text-center transition-colors ${
+                      isSelected ? 'text-[#e5c158]' : 'text-white'
+                    }`}>
                       {player.name}
                     </div>
                     <span className={`text-xs px-3.5 py-1 rounded-full font-bold border tracking-wider shadow-inner ${posStyle.badgeClass}`}>
@@ -359,7 +370,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. 매치 스코어 보드 구역 [배경: 오리지널 와인] */}
+      {/* 5. 매치 스코어 보드 구역 */}
       <section id="match" className="bg-[#4a1525] w-full py-20">
         <div className="max-w-3xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
@@ -430,7 +441,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. 연락하기 문의 폼 구역 [배경: 다크 와인] */}
+      {/* 6. 연락하기 문의 폼 구역 */}
       <section id="contact" className="bg-[#330d19] w-full py-20 border-t border-black/10">
         <div className="max-w-2xl mx-auto px-4">
           <h2 className="text-2xl font-black text-center flex justify-center items-center gap-2 mb-6 text-[#e5c158]">
@@ -490,7 +501,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. 푸터 구역 [배경: 가장 어두운 딥 와인] */}
+      {/* 7. 푸터 구역 */}
       <footer className="bg-[#210810] w-full py-12 border-t border-white/5">
         <div className="max-w-md mx-auto text-center px-4 space-y-4">
           <div className="flex items-center justify-center gap-2 text-gray-300">
