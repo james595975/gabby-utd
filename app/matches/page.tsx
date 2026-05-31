@@ -64,16 +64,28 @@ export default function MatchesPage() {
 
   return (
     <div className="bg-[#120206] text-white min-h-screen font-sans antialiased selection:bg-[#d4af37] selection:text-black">
-      {/* 글로벌 상단 헤더 내비게이션 바 */}
+      {/* 🏠 글로벌 상단 헤더 내비게이션 바 (홈 바로가기 포함) */}
       <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-4">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#d4af37] transition-colors flex items-center gap-2">
-            <span>🏟️ KAEBI UTD</span>
-          </Link>
+          
+          {/* 좌측: 로고 + 홈 바로가기 단추 복합 배치 */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#d4af37] transition-colors flex items-center gap-1.5">
+              <span>🏟️ KAEBI UTD</span>
+            </Link>
+            
+            {/* ⚡ 홈 화면 바로가기 뱃지 버튼 */}
+            <Link href="/" className="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-[#d4af37] px-2.5 py-1 rounded-full text-[11px] font-bold transition-all flex items-center gap-1">
+              <span>🏠 홈으로</span>
+            </Link>
+          </div>
+
+          {/* 우측: 내비 메뉴 텍스트 */}
           <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
-            <Link href="/" className="hover:text-white transition-colors">홈으로</Link>
+            <Link href="/" className="hover:text-white transition-colors">메인 홈</Link>
             <Link href="/matches" className="text-[#d4af37] border-b-2 border-[#d4af37] pb-1">MATCHES</Link>
           </div>
+          
         </div>
       </nav>
 
