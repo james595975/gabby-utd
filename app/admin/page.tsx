@@ -48,6 +48,16 @@ export default function AdminPage() {
   const [isPractice, setIsPractice] = useState(false); 
   const [matchResult, setMatchResult] = useState('무승부'); 
 
+  // 🔥 신규 경기 추가 등록 관련 상태
+  const [addHomeTeam, setAddHomeTeam] = useState('계비 UTD');
+  const [addAwayTeam, setAddAwayTeam] = useState('');
+  const [addHomeScore, setAddHomeScore] = useState(0);
+  const [addAwayScore, setAddAwayScore] = useState(0);
+  const [addHomeLogo, setAddHomeLogo] = useState('');
+  const [addAwayLogo, setAddAwayLogo] = useState('');
+  const [addIsPractice, setAddIsPractice] = useState(false);
+  const [addMatchResult, setAddMatchResult] = useState('무승부');
+
   // 신규 선수 등록 관련 상태
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
@@ -60,7 +70,7 @@ export default function AdminPage() {
   const [newsImageUrl, setNewsImageUrl] = useState('');
   const [newsLinkUrl, setNewsLinkUrl] = useState('');
 
-  // 🔥 문의/신청 리스트 분류 필터 상태 추가 ('all' | 'join' | 'inquiry')
+  // 문의/신청 리스트 분류 필터 상태
   const [messageFilter, setMessageFilter] = useState<'all' | 'join' | 'inquiry'>('all');
 
   useEffect(() => {
@@ -101,7 +111,7 @@ export default function AdminPage() {
       const { data: mData } = await supabase.from('messages').select('*').order('id', { ascending: false });
       if (mData) setMessages(mData);
 
-      const { data: matchData, error: matchError } = await supabase.from('matches').select('*');
+      const { data: matchData, error: matchError } = await supabase.from('matches').select('*').order('id', { ascending: false });
       if (matchData && !matchError) setMatches(matchData);
 
       const { data: newsData, error: newsError } = await supabase.from('news').select('*').order('id', { ascending: false });
@@ -112,7 +122,47 @@ export default function AdminPage() {
     }
   };
 
-  // 경기 결과 업데이트
+  // 🔥 새로운 경기 추가 기능 (Insert)
+  const handleAddMatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addHomeTeam.trim() || !addAwayTeam.trim()) {
+      return alert('홈 팀명과 원정 팀명은 필수 항목입니다.');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('matches')
+        .insert([
+          {
+            home_team: addHomeTeam.trim(),
+            away_team: addAwayTeam.trim(),
+            home_score: Number(addHomeScore),
+            away_score: Number(addAwayScore),
+            home_logo: addHomeLogo.trim() || null,
+            away_logo: addAwayLogo.trim() || null,
+            is_practice: addIsPractice,
+            match_result: addMatchResult
+          }
+        ]);
+
+      if (error) {
+        alert("경기 등록 실패: " + error.message);
+      } else {
+        alert("새로운 경기 결과가 성공적으로 등록되었습니다! ⚽");
+        // 폼 초기화
+        setAddAwayTeam('');
+        setAddHomeScore(0);
+        setAddAwayScore(0);
+        setAddIsPractice(false);
+        setAddMatchResult('무승부');
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 경기 결과 업데이트 (Update)
   const handleUpdateMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMatchId) return;
@@ -142,6 +192,13 @@ export default function AdminPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // 경기 삭제 기능 추가
+  const handleDeleteMatch = async (id: number, home: string, away: string) => {
+    if (!confirm(`[${home} vs ${away}] 경기를 삭제하시겠습니까?`)) return;
+    const { error } = await supabase.from('matches').delete().eq('id', id);
+    if (!error) fetchData();
   };
 
   // 선수 추가 기능
@@ -211,7 +268,6 @@ export default function AdminPage() {
     }
   };
 
-  // 소식 수정 시작 세팅
   const startEditNews = (item: NewsItem) => {
     setEditingNewsId(item.id);
     setNewsTitle(item.title);
@@ -221,7 +277,6 @@ export default function AdminPage() {
     setNewsLinkUrl(item.link_url || '');
   };
 
-  // 소식 입력 폼 초기화
   const cancelNewsEdit = () => {
     setEditingNewsId(null);
     setNewsTitle('');
@@ -231,9 +286,8 @@ export default function AdminPage() {
     setNewsLinkUrl('');
   };
 
-  // 소식 삭제 기능
   const handleDeleteNews = async (id: number, title: string) => {
-    if (!confirm(`"${title}" 소식을 삭제하시겠습니까? 홈 화면과 소식 페이지에서 모두 내려갑니다.`)) return;
+    if (!confirm(`"${title}" 소식을 삭제하시겠습니까?`)) return;
     const { error } = await supabase.from('news').delete().eq('id', id);
     if (!error) {
       if (editingNewsId === id) cancelNewsEdit();
@@ -241,20 +295,10 @@ export default function AdminPage() {
     }
   };
 
-  // 🔥 문의 메세지 삭제 처리 기능 추가
   const handleDeleteMessage = async (id: number, name: string) => {
-    if (!confirm(`"${name}" 님의 문의/지원 내역을 데이터베이스에서 완전히 삭제하시겠습니까?`)) return;
-    try {
-      const { error } = await supabase.from('messages').delete().eq('id', id);
-      if (!error) {
-        alert('문의 내역이 영구 삭제되었습니다.');
-        fetchData();
-      } else {
-        alert('삭제 실패: ' + error.message);
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    if (!confirm(`"${name}" 님의 문의/지원 내역을 삭제하시겠습니까?`)) return;
+    const { error } = await supabase.from('messages').delete().eq('id', id);
+    if (!error) fetchData();
   };
 
   const startEdit = (match: MatchData) => {
@@ -264,12 +308,11 @@ export default function AdminPage() {
     setHomeLogo(match.home_logo || '');
     setAwayLogo(match.away_logo || '');
     setHomeTeam(match.home_team || '계비 UTD');
-    setAwayTeam(match.away_team || '잔뇨 FC');
+    setAwayTeam(match.away_team || '');
     setIsPractice(match.is_practice || false);
     setMatchResult(match.match_result || '무승부');
   };
 
-  // 🔥 필터링 필터 로직 적용 변수
   const filteredMessages = messages.filter((msg) => {
     if (messageFilter === 'all') return true;
     return msg.type === messageFilter;
@@ -297,10 +340,56 @@ export default function AdminPage() {
           <button onClick={handleLogout} className="text-xs bg-red-900/40 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-bold">로그아웃</button>
         </div>
 
-        {/* [1구역] 경기 스코어 및 상태 관리 */}
-        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md">
-          <h2 className="text-base sm:text-lg font-bold mb-4 flex items-center gap-2">📊 경기 결과 설정</h2>
-          <div className="space-y-4">
+        {/* [1구역] 경기 스코어 관리 (추가하기 & 리스트 수정 기능 통합) */}
+        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-5">
+          <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">📊 경기 매치 결과 관리 ({matches.length}건)</h2>
+          
+          {/* 🔥 1-1. 신규 경기 결과 등록 폼 (새로운 기록 작성) */}
+          <form onSubmit={handleAddMatch} className="bg-black/20 p-4 rounded-xl border border-dashed border-white/10 space-y-3">
+            <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1">➕ 새로운 경기 결과 추가 등록</h3>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1">홈 팀 명 *</label>
+                <input type="text" value={addHomeTeam} onChange={(e) => setAddHomeTeam(e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1">원정 팀 명 *</label>
+                <input type="text" value={addAwayTeam} onChange={(e) => setAddAwayTeam(e.target.value)} placeholder="상대 팀 이름" className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1">홈 스코어</label>
+                <input type="number" value={addHomeScore} onChange={(e) => setAddHomeScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1">원정 스코어</label>
+                <input type="number" value={addAwayScore} onChange={(e) => setAddAwayScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 pt-1 flex-wrap sm:flex-nowrap justify-between">
+              <div className="flex items-center gap-1.5">
+                <input type="checkbox" id="addIsPractice" checked={addIsPractice} onChange={(e) => setAddIsPractice(e.target.checked)} className="w-4 h-4 accent-[#d4af37] cursor-pointer" />
+                <label htmlFor="addIsPractice" className="text-xs font-bold text-amber-400 cursor-pointer">🛠️ 연습 매치(친선전)로 표시</label>
+              </div>
+
+              <div className="flex gap-4 items-center">
+                <span className="text-[10px] text-gray-400 font-bold">🎯 최종 결과:</span>
+                {['승리', '패배', '무승부'].map((res) => (
+                  <label key={res} className="flex items-center gap-1 text-xs font-bold cursor-pointer">
+                    <input type="radio" name="addResultGroup" value={res} checked={addMatchResult === res} onChange={(e) => setAddMatchResult(e.target.value)} className="accent-[#d4af37]" />
+                    {res === '승리' ? '🟢 승' : res === '패배' ? '🔴 패' : '⚪ 무'}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-2 rounded-xl text-xs transition-colors">
+              ✨ 신규 경기 데이터베이스에 저장하기
+            </button>
+          </form>
+
+          {/* 1-2. 기존 매치 리스트 수정/삭제 목록 */}
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
             {matches.map((m) => (
               <div key={m.id} className="border border-white/5 p-4 rounded-xl bg-black/10">
                 {editingMatchId === m.id ? (
@@ -330,7 +419,6 @@ export default function AdminPage() {
                     </div>
 
                     <div className="pt-2 border-t border-white/5 space-y-1.5">
-                      <label className="block text-[10px] text-gray-400 font-bold">🎯 최종 매치 결과 매칭</label>
                       <div className="flex gap-4 items-center">
                         {['승리', '패배', '무승부'].map((res) => (
                           <label key={res} className="flex items-center gap-1.5 text-xs font-bold cursor-pointer">
@@ -342,7 +430,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex gap-2 pt-2">
-                      <button type="submit" className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-xs font-black">💾 저장</button>
+                      <button type="submit" className="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded text-xs text-black font-black">💾 수정 완료</button>
                       <button type="button" onClick={() => setEditingMatchId(null)} className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-xs font-medium">취소</button>
                     </div>
                   </form>
@@ -354,11 +442,15 @@ export default function AdminPage() {
                         m.match_result === '패배' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
                         'bg-gray-600/20 text-gray-400 border-gray-600/30'
                       }`}>{m.match_result || '무승부'}</span>
+                      {m.is_practice && <span className="text-[9px] bg-amber-400/10 text-amber-400 border border-amber-400/20 px-1 rounded">친선</span>}
                       <span className="font-bold text-[#d4af37]">{m.home_team || '계비 UTD'}</span> 
                       <span className="font-mono bg-black/40 px-2 py-0.5 rounded font-bold text-white">{m.home_score} : {m.away_score}</span> 
-                      <span className="text-gray-300">{m.away_team || '잔뇨 FC'}</span>
+                      <span className="text-gray-300">{m.away_team}</span>
                     </div>
-                    <button onClick={() => startEdit(m)} className="bg-[#d4af37] text-black hover:bg-[#c4a030] px-3 py-1.5 rounded text-xs font-black transition-colors">수정하기</button>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => startEdit(m)} className="bg-gray-700 hover:bg-gray-600 text-white px-2.5 py-1.5 rounded text-xs font-bold transition-colors">수정</button>
+                      <button onClick={() => handleDeleteMatch(m.id, m.home_team || '홈', m.away_team || '원정')} className="bg-red-950/20 hover:bg-red-900/40 text-red-400 border border-red-500/10 px-2.5 py-1.5 rounded text-xs font-bold transition-colors">삭제</button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -413,12 +505,10 @@ export default function AdminPage() {
 
             <div className="flex gap-2">
               <button type="submit" className={`flex-1 font-black py-2.5 rounded-xl text-xs transition-colors text-black ${editingNewsId ? 'bg-amber-400 hover:bg-amber-500' : 'bg-[#d4af37] hover:bg-[#c4a030]'}`}>
-                {editingNewsId ? '💾 수정 사항 저장하기 (Update)' : '🚀 새로운 소식 발행하기 (Publish)'}
+                {editingNewsId ? '💾 수정 사항 저장하기' : '🚀 새로운 소식 발행하기'}
               </button>
               {editingNewsId && (
-                <button type="button" onClick={cancelNewsEdit} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold">
-                  취소
-                </button>
+                <button type="button" onClick={cancelNewsEdit} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold">취소</button>
               )}
             </div>
           </form>
@@ -472,12 +562,10 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* 🔥 [4구역] 분류 및 삭제 기능이 대폭 보완된 문의 메세지 내역 */}
+        {/* [4구역] 분류 및 삭제 기능이 포함된 문의 메세지 내역 */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/5 pb-3">
             <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">✉️ 접수된 문의/신청 리스트 ({filteredMessages.length}건)</h2>
-            
-            {/* 🛠️ 세련된 분류 필터 컨트롤러 탭 추가 */}
             <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 self-start sm:self-auto text-[11px] font-bold">
               <button type="button" onClick={() => setMessageFilter('all')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'all' ? 'bg-[#d4af37] text-black' : 'text-gray-400 hover:text-white'}`}>전체보기</button>
               <button type="button" onClick={() => setMessageFilter('join')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'join' ? 'bg-amber-500 text-black' : 'text-gray-400 hover:text-white'}`}>입단지원</button>
@@ -491,28 +579,18 @@ export default function AdminPage() {
             <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
               {filteredMessages.map((msg) => (
                 <div key={msg.id} className="bg-black/20 border border-white/5 p-4 rounded-xl text-xs space-y-2 relative group hover:border-white/10 transition-colors">
-                  
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-black ${msg.type === 'join' ? 'bg-amber-400 text-black' : 'bg-blue-500 text-white'}`}>
                           {msg.type === 'join' ? '입단 지원' : '일반 문의'}
                         </span>
-                        <strong className="text-gray-100 text-sm">{msg.name}</strong>
+                        <strong className="text-gray-200 text-sm">{msg.name}</strong>
                       </div>
                       <span className="text-[10px] text-gray-500 block font-mono">{msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}</span>
                     </div>
-
-                    {/* 🗑️ 문의 개별 영구 삭제 버튼 추가 */}
-                    <button 
-                      type="button" 
-                      onClick={() => handleDeleteMessage(msg.id, msg.name)}
-                      className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/50 border border-red-500/20 px-2 py-1 rounded-lg font-bold shadow-sm transition-colors"
-                    >
-                      문의 삭제
-                    </button>
+                    <button type="button" onClick={() => handleDeleteMessage(msg.id, msg.name)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/50 border border-red-500/20 px-2 py-1 rounded-lg font-bold shadow-sm transition-colors">문의 삭제</button>
                   </div>
-
                   <p className="text-gray-300 bg-black/20 p-3 rounded-xl border border-white/5 whitespace-pre-wrap leading-relaxed break-all font-sans select-text">
                     {msg.content}
                   </p>
