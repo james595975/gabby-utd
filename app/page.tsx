@@ -41,7 +41,12 @@ export default function Home() {
   const [matchLoading, setMatchLoading] = useState<boolean>(true);
   const [newsLoading, setNewsLoading] = useState<boolean>(true);
   const [senderName, setSenderName] = useState('');
-  const [email, setEmail] = useState(''); 
+  
+  // ✨ 이메일 입력 방식 고도화 상태 변수
+  const [emailId, setEmailId] = useState('');
+  const [emailDomain, setEmailDomain] = useState('naver.com');
+  const [domainSelect, setDomainSelect] = useState('naver.com');
+
   const [phone, setPhone] = useState(''); 
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -136,9 +141,27 @@ export default function Home() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!senderName.trim() || !email.trim() || !phone.trim() || !content.trim()) {
+    
+    // ✨ 조합된 최종 이메일 주소 생성
+    const fullEmail = `${emailId.trim()}@${emailDomain.trim()}`;
+
+    // 1. 공백 필수 항목 검사
+    if (!senderName.trim() || !emailId.trim() || !emailDomain.trim() || !phone.trim() || !content.trim()) {
       return alert('필수 항목(*)을 모두 입력해 주세요.');
     }
+
+    // 2. 이름 최종 유효성 검사 (한글, 영문, 공백만 최종 허용)
+    const nameRegex = /^[a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/;
+    if (!nameRegex.test(senderName.trim())) {
+      return alert('이름 필드에는 문자(한글 또는 영문)만 입력할 수 있습니다.');
+    }
+
+    // 3. 연락처 최종 유효성 검사 (오직 숫자만 허용)
+    const phoneRegex = /^[0-9]+$/;
+    if (!phoneRegex.test(phone.trim())) {
+      return alert('연락처 필드에는 숫자만 입력할 수 있습니다.');
+    }
+
     try {
       setIsSubmitting(true);
       
@@ -148,7 +171,7 @@ export default function Home() {
           { 
             type: activeTab, 
             name: senderName.trim(), 
-            content: `[이메일: ${email.trim()} / 연락처: ${phone.trim()}]\n\n내용:\n${content.trim()}` 
+            content: `[이메일: ${fullEmail} / 연락처: ${phone.trim()}]\n\n내용:\n${content.trim()}` 
           }
         ]);
 
@@ -160,7 +183,7 @@ export default function Home() {
       const emailResult = await sendInquiryEmail({
         type: activeTab,
         name: senderName.trim(),
-        email: email.trim(),
+        email: fullEmail,
         phone: phone.trim(),
         content: content.trim()
       });
@@ -168,7 +191,9 @@ export default function Home() {
       if (emailResult.success) {
         alert('Gabby UTD 구단에 정상적으로 접수되었으며, 관리자 메일로 발송되었습니다! 🔥');
         setSenderName('');
-        setEmail('');
+        setEmailId('');
+        setEmailDomain('naver.com');
+        setDomainSelect('naver.com');
         setPhone('');
         setContent('');
       } else {
@@ -276,22 +301,16 @@ export default function Home() {
         </button>
       </section>
 
-      {/* ⚡ 2. 팀 소개 구역 (비율 및 글자 잘림 완벽 수정) */}
+      {/* 2. 팀 소개 구역 */}
       <section id="about" className="bg-[#330d19] w-full py-16 sm:py-24 border-t border-b border-black/10">
         <div className="max-w-3xl mx-auto px-5">
           <div className="bg-[#240811] rounded-2xl p-6 sm:p-12 border border-white/5 shadow-2xl text-center relative overflow-hidden">
-            
-            {/* 상단 장식 태그 */}
             <strong className="text-[#d4af37] text-xs sm:text-sm font-black tracking-[0.25em] block mb-4 uppercase">
               ABOUT TEAM
             </strong>
-            
-            {/* 구단명 강조 */}
             <h3 className="text-xl sm:text-2xl font-black text-white mb-6 tracking-wide">
               계비 UTD
             </h3>
-            
-            {/* 본문 내용: break-keep 적용으로 단어 단위 줄바꿈 및 간격 최적화 */}
             <div className="text-gray-300 text-sm sm:text-base leading-relaxed sm:leading-loose space-y-4 break-keep font-medium max-w-2xl mx-auto">
               <p>
                 2026년 5월 &quot;열정과 함께, 끝까지 승리를 위하여&quot; 라는 구단 상징 슬로건 아래 창단되었으며,
@@ -303,7 +322,6 @@ export default function Home() {
                 언제나 최고의 경기력과 끈끈한 팀워크로<br className="sm:hidden" /> 승리를 향해 전진합니다.
               </p>
             </div>
-
           </div>
         </div>
       </section>
@@ -506,19 +524,78 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSendMessage} className="bg-[#240811] rounded-2xl p-6 border border-white/5 shadow-lg space-y-4">
+            
+            {/* 👤 이름 입력란 (실시간 숫자 입력 원천 차단) */}
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1">이름 *</label>
-              <input type="text" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="홍길동" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" />
+              <input 
+                type="text" 
+                value={senderName} 
+                onChange={(e) => setSenderName(e.target.value.replace(/[0-9]/g, ''))} 
+                placeholder="홍길동 (숫자 입력 불가)" 
+                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" 
+              />
             </div>
 
+            {/* 📧 이메일 선택 및 입력란 (고도화 반영 영역) */}
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1">이메일 *</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" />
+              <div className="space-y-2">
+                <div className="flex gap-2 items-center">
+                  {/* 아이디 입력칸 */}
+                  <input 
+                    type="text" 
+                    value={emailId} 
+                    onChange={(e) => setEmailId(e.target.value)} 
+                    placeholder="이메일 아이디" 
+                    className="w-1/2 bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" 
+                  />
+                  <span className="text-gray-400 font-bold">@</span>
+                  {/* 도메인 선택 셀렉트 박스 */}
+                  <select 
+                    value={domainSelect} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDomainSelect(val);
+                      if (val !== 'custom') {
+                        setEmailDomain(val); // 유명 도메인 선택 시 도메인 자동 지정
+                      } else {
+                        setEmailDomain(''); // 직접 입력 선택 시 도메인 초기화하여 유저가 적게 유도
+                      }
+                    }} 
+                    className="w-1/2 bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37] [&>option]:bg-[#240811]"
+                  >
+                    <option value="naver.com">naver.com</option>
+                    <option value="gmail.com">gmail.com</option>
+                    <option value="daum.net">daum.net</option>
+                    <option value="hanmail.net">hanmail.net</option>
+                    <option value="custom">직접 입력</option>
+                  </select>
+                </div>
+                
+                {/* '직접 입력'을 눌렀을 때만 나타나는 주소 입력창 */}
+                {domainSelect === 'custom' && (
+                  <input 
+                    type="text" 
+                    value={emailDomain} 
+                    onChange={(e) => setEmailDomain(e.target.value)} 
+                    placeholder="도메인을 직접 입력하세요. (예: kakao.com)" 
+                    className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37] animate-fadeIn" 
+                  />
+                )}
+              </div>
             </div>
 
+            {/* 📱 연락처 입력란 (실시간 숫자 기호 차단) */}
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1">연락처 *</label>
-              <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-1234-5678" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" />
+              <input 
+                type="text" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))} 
+                placeholder="01012345678 (하이픈 제외 숫자만)" 
+                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#d4af37]" 
+              />
             </div>
 
             <div>
