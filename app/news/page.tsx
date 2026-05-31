@@ -9,16 +9,30 @@ interface NewsItem {
   title: string;
   content: string;
   image_url?: string;
-  link_url?: string; // 🔥 추가
+  link_url?: string;
   tag: string;
   created_at: string;
 }
 
 export default function NewsPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [logoUrl, setLogoUrl] = useState<string>(''); // 🔥 구단 로고 URL 상태 추가
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 1. 구단 로고 이미지 가져오기 (matches 테이블의 첫 번째 데이터 기준)
+    const fetchClubLogo = async () => {
+      try {
+        const { data, error } = await supabase.from('matches').select('home_logo').limit(1);
+        if (data && data.length > 0 && !error) {
+          setLogoUrl(data[0].home_logo?.trim() || '');
+        }
+      } catch (e) {
+        console.error("Club logo fetch error:", e);
+      }
+    };
+
+    // 2. 소식 리스트 데이터 가져오기
     const fetchNews = async () => {
       try {
         const { data, error } = await supabase
@@ -32,10 +46,11 @@ export default function NewsPage() {
       } catch (e) {
         console.error("News fetch error:", e);
       } finally {
-        loading && setLoading(false);
+        setLoading(false);
       }
     };
 
+    fetchClubLogo();
     fetchNews();
   }, []);
 
@@ -51,20 +66,34 @@ export default function NewsPage() {
   return (
     <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-20">
       
-      <header className="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center border-b border-white/10">
-        <Link href="/" className="text-xl font-black tracking-wider text-[#d4af37] flex items-center gap-2">
-          🛡️ 계비 UTD
+      {/* 상단 네비게이션 헤더 */}
+      <header className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center border-b border-white/10">
+        {/* 🔥 왼쪽 상단 구단 로고 링크 구역 */}
+        <Link href="/" className="flex items-center gap-3 group transition-transform active:scale-95">
+          <div className="w-10 h-10 rounded-full bg-black/30 border-2 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-md">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Club Logo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[#d4af37] text-xs font-black">UTD</span>
+            )}
+          </div>
+          <span className="text-base sm:text-lg font-black tracking-wider text-white group-hover:text-[#e5c158] transition-colors">
+            계비 UTD
+          </span>
         </Link>
-        <Link href="/" className="text-xs bg-black/30 border border-white/10 px-4 py-2 rounded-xl hover:bg-black/50 transition-colors">
-          🏠 홈으로 돌아가기
+
+        <Link href="/" className="text-xs bg-black/30 border border-white/10 px-4 py-2 rounded-xl hover:bg-black/50 transition-colors font-medium">
+          🏠 홈 화면
         </Link>
       </header>
 
+      {/* 대타이틀 구역 */}
       <section className="text-center pt-16 pb-12 px-4">
         <h1 className="text-3xl sm:text-4xl font-black tracking-wider text-[#e5c158] mb-3">📰 구단 소식통</h1>
         <p className="text-gray-300 text-sm sm:text-base">계비 UTD의 최신 공지사항과 생생한 경기 리포트를 확인하세요.</p>
       </section>
 
+      {/* 메인 소식 피드 리스트 구역 */}
       <main className="max-w-5xl mx-auto px-4">
         {loading ? (
           <div className="text-center py-20 text-gray-400 text-sm">소식을 불러오는 중입니다...</div>
@@ -77,7 +106,6 @@ export default function NewsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {news.map((item) => {
               const isExternal = !!item.link_url;
-              // 링크 주소가 있으면 해당 주소로, 없으면 현재 주소(#)를 유지하여 클릭 유실 방지
               const targetUrl = item.link_url || '#';
 
               return (
@@ -132,6 +160,7 @@ export default function NewsPage() {
         )}
       </main>
 
+      {/* 하단 푸터 구역 */}
       <footer className="max-w-md mx-auto text-center px-4 mt-24 space-y-3 opacity-60">
         <p className="text-xs font-bold text-[#d4af37]/70 tracking-widest uppercase">WE PLAY. WE FIGHT. WE WIN.</p>
         <p className="text-[11px] text-gray-500">© 2026 계비 UTD. All rights reserved.</p>
