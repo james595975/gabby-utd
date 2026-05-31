@@ -12,7 +12,7 @@ interface MatchData {
   away_score: number;
   home_logo?: string;
   away_logo?: string;
-  created_at: string;
+  date?: string; // 📅 어드민에서 입력한 date 필드 복구
   is_practice?: boolean;
   match_result?: string;
 }
@@ -24,7 +24,6 @@ export default function MatchesPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'official' | 'practice'>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'draw' | 'lose'>('all');
 
-  // 💎 메인 홈과 동일한 기본 로고 상수 정의
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
   const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; 
 
@@ -38,7 +37,7 @@ export default function MatchesPage() {
       const { data, error } = await supabase
         .from('matches')
         .select('*')
-        .order('id', { ascending: false });
+        .order('id', { ascending: false }); // 최신 순 정렬
 
       if (!error && data) {
         setMatches(data);
@@ -70,7 +69,7 @@ export default function MatchesPage() {
   return (
     <div className="bg-[#1a050a] min-h-screen text-white font-sans antialiased pb-20">
       
-      {/* 📌 [완전 수정] 메인 홈과 100% 일치시킨 상단 고정 네비게이션 바 (홈 이동 정상화) */}
+      {/* 최상단 네비게이션 바 */}
       <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2 group">
@@ -90,7 +89,6 @@ export default function MatchesPage() {
         </div>
       </nav>
 
-      {/* 메인 콘텐츠 구역 패딩 조절 */}
       <main className="max-w-4xl mx-auto px-4 pt-8 space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-100 flex items-center gap-2">
@@ -144,10 +142,11 @@ export default function MatchesPage() {
             <div className="text-center py-12 text-xs text-gray-500 bg-[#2b0c14]/20 border border-dashed border-white/5 rounded-2xl">조회된 매치 결과가 없습니다.</div>
           ) : (
             filteredMatches.map((match) => {
-              // 최신 매치에 저장된 개별 홈 로고가 있다면 그걸 쓰고, 없으면 기본 로고(DEFAULT_HOME_LOGO)를 매핑합니다.
               const currentHomeLogo = match.home_logo && match.home_logo.startsWith('http') ? match.home_logo : DEFAULT_HOME_LOGO;
               const currentAwayLogo = match.away_logo && match.away_logo.startsWith('http') ? match.away_logo : DEFAULT_AWAY_LOGO;
-              const formattedDate = new Date(match.created_at).toLocaleDateString('ko-KR');
+              
+              // ⚙️ 어드민 입력값을 그대로 쓰고, 비어있을 때만 기본 텍스트 처리
+              const displayDate = match.date ? match.date.trim() : '날짜 미지정';
 
               return (
                 <div key={match.id} className="bg-[#2b0c14] border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-md hover:border-white/10 transition-all">
@@ -163,7 +162,7 @@ export default function MatchesPage() {
                       {match.is_practice ? '친선 매치' : '공식 매치'}
                     </span>
                     <span className="text-[10px] text-gray-500 font-mono font-bold block sm:inline">
-                      🗓️ {formattedDate}
+                      🗓️ {displayDate}
                     </span>
                   </div>
 
