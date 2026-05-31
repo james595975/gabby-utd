@@ -23,6 +23,7 @@ interface NewsItem {
   title: string;
   content: string;
   image_url?: string;
+  link_url?: string; // 🔥 이동 링크 인터페이스 추가
   tag: string;
   created_at: string;
 }
@@ -51,11 +52,12 @@ export default function AdminPage() {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
 
-  // 🔥 신규 소식 등록 관련 상태
+  // 신규 소식 등록 관련 상태
   const [newsTitle, setNewsTitle] = useState('');
   const [newsContent, setNewsContent] = useState('');
   const [newsTag, setNewsTag] = useState('공지');
   const [newsImageUrl, setNewsImageUrl] = useState('');
+  const [newsLinkUrl, setNewsLinkUrl] = useState(''); // 🔥 이동 링크 상태 추가
 
   useEffect(() => {
     const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
@@ -101,7 +103,7 @@ export default function AdminPage() {
       const { data: matchData, error: matchError } = await supabase.from('matches').select('*');
       if (matchData && !matchError) setMatches(matchData);
 
-      // 🔥 4. 구단 소식 가져오기
+      // 4. 구단 소식 가져오기
       const { data: newsData, error: newsError } = await supabase.from('news').select('*').order('id', { ascending: false });
       if (newsData && !newsError) setNews(newsData);
 
@@ -166,7 +168,7 @@ export default function AdminPage() {
     if (!error) fetchData();
   };
 
-  // 🔥 소식 추가 기능
+  // 소식 추가 기능 (link_url 바인딩 처리 완료)
   const handleAddNews = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsTitle.trim() || !newsContent.trim()) {
@@ -180,7 +182,8 @@ export default function AdminPage() {
           title: newsTitle.trim(),
           content: newsContent.trim(),
           tag: newsTag,
-          image_url: newsImageUrl.trim() || null
+          image_url: newsImageUrl.trim() || null,
+          link_url: newsLinkUrl.trim() || null // 🔥 대시보드 링크 컬럼 저장
         }
       ]);
 
@@ -189,6 +192,7 @@ export default function AdminPage() {
       setNewsTitle('');
       setNewsContent('');
       setNewsImageUrl('');
+      setNewsLinkUrl(''); // 리셋
       setNewsTag('공지');
       fetchData();
     } else {
@@ -196,7 +200,7 @@ export default function AdminPage() {
     }
   };
 
-  // 🔥 소식 삭제 기능
+  // 소식 삭제 기능
   const handleDeleteNews = async (id: number, title: string) => {
     if (!confirm(`"${title}" 소식을 삭제하시겠습니까? 홈 화면과 소식 페이지에서 모두 내려갑니다.`)) return;
     const { error } = await supabase.from('news').delete().eq('id', id);
@@ -306,7 +310,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        {/* 🔥 [신규 추가 구역] [2구역] 구단 소식 게시판 포스팅 관리 */}
+        {/* [2구역] 구단 소식 게시판 포스팅 관리 (이동 링크 입력 폼 통합) */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
           <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">📰 구단 소식 포스팅 관리 ({news.length}건)</h2>
           
@@ -327,9 +331,16 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-[10px] text-gray-400 mb-1">대표 이미지 주소 (선택)</label>
-              <input type="text" value={newsImageUrl} onChange={(e) => setNewsImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1">대표 이미지 주소 (선택)</label>
+                <input type="text" value={newsImageUrl} onChange={(e) => setNewsImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
+              </div>
+              {/* 🔥 새롭게 연동한 클릭 시 연결 링크 입력 칸 */}
+              <div>
+                <label className="block text-[10px] text-amber-400 font-bold mb-1">🔗 클릭 시 이동할 상세 링크 주소 (선택)</label>
+                <input type="text" value={newsLinkUrl} onChange={(e) => setNewsLinkUrl(e.target.value)} placeholder="https://instagram.com/... (인스타 링크 등)" className="w-full bg-black/40 border border-amber-500/20 focus:border-[#d4af37] rounded-xl p-2.5 text-xs text-white focus:outline-none" />
+              </div>
             </div>
 
             <div>
@@ -350,6 +361,7 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] bg-black/40 text-gray-400 px-1.5 py-0.5 rounded font-mono">ID: {item.id}</span>
                     <span className="text-[10px] text-amber-300 font-bold">[{item.tag}]</span>
+                    {item.link_url && <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1 rounded border border-amber-500/20">🔗 링크 연동됨</span>}
                     <span className="text-gray-400 text-[10px]">{new Date(item.created_at).toLocaleDateString()}</span>
                   </div>
                   <p className="font-bold text-gray-200 truncate">{item.title}</p>
