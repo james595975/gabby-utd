@@ -142,7 +142,6 @@ export default function Home() {
     try {
       setIsSubmitting(true);
       
-      // 1. Supabase DB에 백업 저장
       const { error } = await supabase
         .from('messages')
         .insert([
@@ -158,7 +157,6 @@ export default function Home() {
         return;
       }
 
-      // 2. 서버 액션을 호출해 백엔드에서 메일 발송
       const emailResult = await sendInquiryEmail({
         type: activeTab,
         name: senderName.trim(),
@@ -224,15 +222,14 @@ export default function Home() {
             <span>Gabby UTD</span>
           </div>
 
-          {/* ✨ 수정본: 이미지 + 글자 조합의 스폰서 영역 */}
+          {/* 스폰서 영역 */}
           <div className="hidden md:flex items-center gap-2.5 text-[11px] font-bold text-gray-400 bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5 shadow-inner">
             <span className="text-gray-400 text-[10px] tracking-wide font-medium whitespace-nowrap">Gabby UTD Sponsored by</span>
             <span className="w-px h-3 bg-white/10"></span>
             <div className="flex items-center gap-1.5">
-              {/* 💡 기호에 맞춰 public 폴더 내 이미지 경로 또는 외부 URL 주소로 교체해 주세요 */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {/* <img 
-                src="https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/sponsor%20icon/spotify.png" 
+                src="/sponsor-logo.png" 
                 alt="Sponsor Logo" 
                 className="w-4 h-4 object-contain rounded-sm"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} 
@@ -279,16 +276,34 @@ export default function Home() {
         </button>
       </section>
 
-      {/* 2. 팀 소개 구역 */}
-      <section id="about" className="bg-[#330d19] w-full py-20 border-t border-b border-black/10">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="bg-[#240811] rounded-2xl p-8 sm:p-10 border border-white/5 shadow-xl text-center leading-relaxed text-gray-200 text-base">
-            <strong className="text-[#d4af37] text-sm font-bold tracking-[0.2em] block mb-3 uppercase">ABOUT TEAM</strong>
-            <span className="font-medium text-gray-300 leading-loose">
-              <strong className="text-white text-lg block mb-2">{displayHomeTeam}</strong> 
-              타협하지 않는 열정의 축구단입니다. <br/>
-              언제나 최고의 경기력과 끈끈한 팀워크로<br/>승리를 향해 전진합니다.
-            </span>
+      {/* ⚡ 2. 팀 소개 구역 (비율 및 글자 잘림 완벽 수정) */}
+      <section id="about" className="bg-[#330d19] w-full py-16 sm:py-24 border-t border-b border-black/10">
+        <div className="max-w-3xl mx-auto px-5">
+          <div className="bg-[#240811] rounded-2xl p-6 sm:p-12 border border-white/5 shadow-2xl text-center relative overflow-hidden">
+            
+            {/* 상단 장식 태그 */}
+            <strong className="text-[#d4af37] text-xs sm:text-sm font-black tracking-[0.25em] block mb-4 uppercase">
+              ABOUT TEAM
+            </strong>
+            
+            {/* 구단명 강조 */}
+            <h3 className="text-xl sm:text-2xl font-black text-white mb-6 tracking-wide">
+              계비 UTD
+            </h3>
+            
+            {/* 본문 내용: break-keep 적용으로 단어 단위 줄바꿈 및 간격 최적화 */}
+            <div className="text-gray-300 text-sm sm:text-base leading-relaxed sm:leading-loose space-y-4 break-keep font-medium max-w-2xl mx-auto">
+              <p>
+                2026년 5월 &quot;열정과 함께, 끝까지 승리를 위하여&quot; 라는 구단 상징 슬로건 아래 창단되었으며,
+              </p>
+              <p>
+                DFL(Dinner Football League)에서 활약하는 타협하지 않는 열정의 축구단입니다.
+              </p>
+              <p className="text-white font-semibold pt-2">
+                언제나 최고의 경기력과 끈끈한 팀워크로<br className="sm:hidden" /> 승리를 향해 전진합니다.
+              </p>
+            </div>
+
           </div>
         </div>
       </section>
