@@ -12,7 +12,7 @@ interface MatchData {
   away_score: number;
   home_logo?: string;
   away_logo?: string;
-  date?: string;
+  created_at: string;
   is_practice?: boolean;
   match_result?: string;
 }
@@ -20,11 +20,11 @@ interface MatchData {
 export default function MatchesPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null); // 에러 메시지 표출용
   
   const [typeFilter, setTypeFilter] = useState<'all' | 'official' | 'practice'>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'win' | 'draw' | 'lose'>('all');
 
+  // 💎 메인 홈과 동일한 기본 로고 상수 정의
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
   const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; 
 
@@ -35,27 +35,16 @@ export default function MatchesPage() {
   const fetchMatches = async () => {
     try {
       setLoading(true);
-      setErrorMsg(null);
-
-      // 🔍 [안전 조치] 만약 'date' 필드명 오류로 안 불러와지는 것이라면, 
-      // 일차적으로 가장 확실한 고유값인 'id' 기준으로 정렬하도록 수정했습니다.
       const { data, error } = await supabase
         .from('matches')
         .select('*')
-        .order('id', { ascending: false }); // 최신 등록 순서 보장
+        .order('id', { ascending: false });
 
-      if (error) {
-        console.error('Supabase fetch error:', error);
-        setErrorMsg(`데이터를 가져오지 못했습니다: ${error.message}`);
-        return;
-      }
-
-      if (data) {
+      if (!error && data) {
         setMatches(data);
       }
-    } catch (err: any) {
-      console.error('경기 기록실 시스템 내부 오류:', err);
-      setErrorMsg('네트워크 또는 시스템 오류가 발생했습니다.');
+    } catch (err) {
+      console.error('Fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -79,18 +68,30 @@ export default function MatchesPage() {
   });
 
   return (
-    <div className="bg-[#1a050a] min-h-screen text-white p-4 sm:p-8 font-sans">
-      <header className="max-w-4xl mx-auto flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-        <div className="flex items-center gap-2">
-          {/* 상단 미니 로고 가이드 일치 */}
-          <span className="text-xl font-black tracking-wider text-[#d4af37]">⚽ Gabby UTD</span>
+    <div className="bg-[#1a050a] min-h-screen text-white font-sans antialiased pb-20">
+      
+      {/* 📌 [완전 수정] 메인 홈과 100% 일치시킨 상단 고정 네비게이션 바 (홈 이동 정상화) */}
+      <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3">
+        <div className="max-w-5xl mx-auto flex justify-between items-center">
+          <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2 group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={DEFAULT_HOME_LOGO} 
+              alt="Gabby UTD Mini Logo" 
+              className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5"
+              onError={(e) => { (e.target as HTMLImageElement).src = 'https://gyebi-utd-logo-url-here.png'; }} 
+            />
+            <span>Gabby UTD</span>
+          </Link>
+          <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
+            <Link href="/" className="hover:text-white transition-colors">메인 홈</Link>
+            <Link href="/matches" className="text-[#e5c158] border-b-2 border-[#e5c158] pb-1">MATCHES</Link>
+          </div>
         </div>
-        <Link href="/" className="text-xs bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 transition-colors text-gray-300">
-          🏠 홈으로
-        </Link>
-      </header>
+      </nav>
 
-      <main className="max-w-4xl mx-auto space-y-6">
+      {/* 메인 콘텐츠 구역 패딩 조절 */}
+      <main className="max-w-4xl mx-auto px-4 pt-8 space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-100 flex items-center gap-2">
             <span className="inline-block w-3 h-6 bg-[#d4af37] rounded-sm"></span>
@@ -99,7 +100,7 @@ export default function MatchesPage() {
           <p className="text-xs text-gray-400 mt-1 pl-5">Gabby UTD 역대 매치 아카이브입니다.</p>
         </div>
 
-        {/* 대시보드 */}
+        {/* 대시보드 스코어 */}
         <div className="grid grid-cols-4 bg-[#2b0c14] border border-white/5 rounded-2xl p-4 text-center divide-x divide-white/5 shadow-lg">
           <div>
             <p className="text-[10px] sm:text-xs text-gray-400 font-medium">총 경기수</p>
@@ -119,7 +120,7 @@ export default function MatchesPage() {
           </div>
         </div>
 
-        {/* 필터 버튼 단락 */}
+        {/* 필터 탭 */}
         <div className="bg-[#2b0c14]/60 border border-white/5 rounded-xl p-3 flex flex-wrap gap-4 items-center justify-between text-xs font-bold text-gray-400">
           <div className="flex items-center gap-1.5 bg-black/20 p-1 rounded-lg">
             <button onClick={() => setTypeFilter('all')} className={`px-2.5 py-1 rounded-md transition-colors ${typeFilter === 'all' ? 'bg-[#d4af37] text-black font-black' : 'hover:text-white'}`}>전체</button>
@@ -135,22 +136,18 @@ export default function MatchesPage() {
           </div>
         </div>
 
-        {/* 매치 결과 렌더링 구역 */}
+        {/* 리스트 */}
         <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-12 text-xs text-gray-500">데이터베이스 매치 로드 중...</div>
-          ) : errorMsg ? (
-            /* ⚠️ 에러 확인용 스크린 인터페이스 추가 */
-            <div className="text-center py-12 text-xs text-red-400 bg-red-500/10 border border-dashed border-red-500/20 rounded-2xl p-4">
-              {errorMsg}
-              <br/><span className="text-[10px] text-gray-500 mt-2 block">Supabase Matches 테이블 컬럼명을 대조해 보세요.</span>
-            </div>
+            <div className="text-center py-12 text-xs text-gray-500">매치 데이터를 불러오는 중...</div>
           ) : filteredMatches.length === 0 ? (
-            <div className="text-center py-12 text-xs text-gray-500 bg-[#2b0c14]/20 border border-dashed border-white/5 rounded-2xl">조회된 조건의 매치 결과가 없습니다.</div>
+            <div className="text-center py-12 text-xs text-gray-500 bg-[#2b0c14]/20 border border-dashed border-white/5 rounded-2xl">조회된 매치 결과가 없습니다.</div>
           ) : (
             filteredMatches.map((match) => {
+              // 최신 매치에 저장된 개별 홈 로고가 있다면 그걸 쓰고, 없으면 기본 로고(DEFAULT_HOME_LOGO)를 매핑합니다.
               const currentHomeLogo = match.home_logo && match.home_logo.startsWith('http') ? match.home_logo : DEFAULT_HOME_LOGO;
               const currentAwayLogo = match.away_logo && match.away_logo.startsWith('http') ? match.away_logo : DEFAULT_AWAY_LOGO;
+              const formattedDate = new Date(match.created_at).toLocaleDateString('ko-KR');
 
               return (
                 <div key={match.id} className="bg-[#2b0c14] border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-md hover:border-white/10 transition-all">
@@ -166,7 +163,7 @@ export default function MatchesPage() {
                       {match.is_practice ? '친선 매치' : '공식 매치'}
                     </span>
                     <span className="text-[10px] text-gray-500 font-mono font-bold block sm:inline">
-                      {match.date ? match.date : '기록 완료'}
+                      🗓️ {formattedDate}
                     </span>
                   </div>
 
