@@ -69,7 +69,7 @@ export async function sendInquiryEmail(data: EmailData) {
   // 2. [구단 관리자용] 관리자가 받아볼 메일 본문 구성 (HTML 스타일링 포함)
   const mailOptions = {
     from: process.env.SMTP_USER,
-    to: 'hjs595975@gmail.com', // ✨ 알림을 수신할 실제 구단 대표 이메일 주소
+    to: process.env.SMTP_USER, // ✨ 알림을 수신할 실제 구단 대표 이메일 주소
     subject: `[Gabby UTD] ${typeLabel} - ${data.name}님의 신청서가 접수되었습니다.`,
     html: `
       <div style="font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; padding: 24px; border-radius: 16px; background-color: #ffffff; color: #1f2937;">
