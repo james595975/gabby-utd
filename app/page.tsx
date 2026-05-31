@@ -44,7 +44,7 @@ export default function Home() {
 
   // 💎 [기본값 설정] 데이터베이스에 이미지 URL이 없거나 깨질 때 대체할 로고 주소
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; // 🏠 우리 팀(Gabby UTD) 기본 로고
-  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; // 🏃 상대 팀(예: 잔뇨 FC 등) 기본 로고
+  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; // 🏃 상대 팀 기본 로고
 
   useEffect(() => {
     const fetchPlayers = async () => {
@@ -169,24 +169,29 @@ export default function Home() {
     }
   };
 
-  // 🛡️ 실시간 연동 필드 매핑 및 예외 방어 데이터 설정 (요청대로 기본값을 영어 명칭으로 적용)
   const displayHomeTeam = match?.home_team || 'Gabby UTD';
   const displayAwayTeam = match?.away_team || '상대 팀';
   const displayHomeScore = match !== null ? match.home_score : 0;
   const displayAwayScore = match !== null ? match.away_score : 0;
   const displayDate = match?.date || '최근 경기 기록';
 
-  // 로고 텍스트 주소 체크 및 상수 예외 방어
   const homeLogoUrl = match?.home_logo && match.home_logo.startsWith('http') ? match.home_logo.trim() : DEFAULT_HOME_LOGO;
   const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;
 
   return (
     <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-20">
-      {/* 📌 상단 고정 네비게이션 바 영문 세팅 */}
-      <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-4">
+      {/* 📌 [수정] 최상단 고정 네비게이션 바 - 축구공 대신 DEFAULT_HOME_LOGO 적용 */}
+      <nav className="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <Link href="/" className="font-black text-lg tracking-wider text-white hover:text-[#e5c158] transition-colors flex items-center gap-2">
-            <span>⚽ Gabby UTD</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={homeLogoUrl} 
+              alt="Gabby UTD Mini Logo" 
+              className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5"
+              onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
+            />
+            <span>Gabby UTD</span>
           </Link>
           <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
             <Link href="/" className="text-[#e5c158] border-b-2 border-[#e5c158] pb-1">메인 홈</Link>
