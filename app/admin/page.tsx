@@ -41,8 +41,8 @@ export default function AdminPage() {
   const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
-  const [homeLogo, setHomeLogo] = useState('');
-  const [awayLogo, setAwayLogo] = useState('');
+  const [homeLogo, setHomeLogo] = useState(''); // 🔥 수정 폼용 홈 로고 추가
+  const [awayLogo, setAwayLogo] = useState(''); // 🔥 수정 폼용 원정 로고 추가
   const [homeTeam, setHomeTeam] = useState('');
   const [awayTeam, setAwayTeam] = useState('');
   const [isPractice, setIsPractice] = useState(false); 
@@ -53,8 +53,8 @@ export default function AdminPage() {
   const [addAwayTeam, setAddAwayTeam] = useState('');
   const [addHomeScore, setAddHomeScore] = useState(0);
   const [addAwayScore, setAddAwayScore] = useState(0);
-  const [addHomeLogo, setAddHomeLogo] = useState('');
-  const [addAwayLogo, setAddAwayLogo] = useState('');
+  const [addHomeLogo, setAddHomeLogo] = useState(''); // 🔥 신규 등록용 홈 로고
+  const [addAwayLogo, setAddAwayLogo] = useState(''); // 🔥 신규 등록용 원정 로고
   const [addIsPractice, setAddIsPractice] = useState(false);
   const [addMatchResult, setAddMatchResult] = useState('무승부');
 
@@ -104,7 +104,6 @@ export default function AdminPage() {
   const fetchData = async () => {
     try {
       setIsLoading(false);
-      
       const { data: pData } = await supabase.from('players').select('*').order('id', { ascending: true });
       if (pData) setPlayers(pData);
 
@@ -116,13 +115,12 @@ export default function AdminPage() {
 
       const { data: newsData, error: newsError } = await supabase.from('news').select('*').order('id', { ascending: false });
       if (newsData && !newsError) setNews(newsData);
-
     } catch (e) {
       console.error(e);
     }
   };
 
-  // 🔥 새로운 경기 추가 기능 (id 컬럼 누락 에러 및 디폴트 값 완벽 예외 처리)
+  // ⚽ 새로운 경기 추가 기능
   const handleAddMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addHomeTeam.trim() || !addAwayTeam.trim()) {
@@ -130,7 +128,6 @@ export default function AdminPage() {
     }
 
     try {
-      // 명시적으로 고유 ID 충돌을 피하기 위해 오직 삽입 데이터셋만 전송합니다.
       const { error } = await supabase
         .from('matches')
         .insert([
@@ -139,20 +136,22 @@ export default function AdminPage() {
             away_team: addAwayTeam.trim(),
             home_score: Number(addHomeScore),
             away_score: Number(addAwayScore),
-            home_logo: addHomeLogo.trim() || "🛡️",
-            away_logo: addAwayLogo.trim() || "🛡️",
+            home_logo: addHomeLogo.trim() || null, // 🛡️ 주소 없으면 null로 전달하여 메인에서 기본 아이콘이 뜨도록 유도
+            away_logo: addAwayLogo.trim() || null,
             is_practice: addIsPractice,
             match_result: addMatchResult
           }
         ]);
 
       if (error) {
-        alert("경기 등록 실패: " + error.message + "\n(Supabase SQL 에러가 발생하면 1번 가이드를 적용해 주세요.)");
+        alert("경기 등록 실패: " + error.message);
       } else {
         alert("새로운 경기 결과가 성공적으로 등록되었습니다! ⚽");
         setAddAwayTeam('');
         setAddHomeScore(0);
         setAddAwayScore(0);
+        setAddHomeLogo(''); // 🔥 입력창 비우기
+        setAddAwayLogo(''); // 🔥 입력창 비우기
         setAddIsPractice(false);
         setAddMatchResult('무승부');
         fetchData();
@@ -171,19 +170,19 @@ export default function AdminPage() {
       const { error } = await supabase
         .from('matches')
         .update({
-          home_score: Number(homeScore),
-          away_score: Number(awayScore),
-          home_logo: homeLogo.trim(),
-          away_logo: awayLogo.trim(),
           home_team: homeTeam.trim(),
           away_team: awayTeam.trim(),
+          home_score: Number(homeScore),
+          away_score: Number(awayScore),
+          home_logo: homeLogo.trim() || null, // 🔥 수정 반영
+          away_logo: awayLogo.trim() || null, // 🔥 수정 반영
           is_practice: isPractice,
           match_result: matchResult
         })
         .eq('id', editingMatchId);
 
       if (error) {
-        alert("등록 실패: " + error.message);
+        alert("수정 실패: " + error.message);
       } else {
         alert("경기 결과가 성공적으로 업데이트되었습니다! ⚽");
         setEditingMatchId(null);
@@ -205,11 +204,9 @@ export default function AdminPage() {
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return alert('선수 이름을 입력해 주세요.');
-    
     const { error } = await supabase
       .from('players')
       .insert([{ name: newPlayerName.trim(), position: newPlayerPosition }]);
-    
     if (!error) {
       setNewPlayerName('');
       fetchData();
@@ -241,11 +238,7 @@ export default function AdminPage() {
     };
 
     if (editingNewsId) {
-      const { error } = await supabase
-        .from('news')
-        .update(payload)
-        .eq('id', editingNewsId);
-
+      const { error } = await supabase.from('news').update(payload).eq('id', editingNewsId);
       if (!error) {
         alert('구단 소식이 성공적으로 수정되었습니다! 📝');
         cancelNewsEdit();
@@ -254,10 +247,7 @@ export default function AdminPage() {
         alert('소식 수정 실패: ' + error.message);
       }
     } else {
-      const { error } = await supabase
-        .from('news')
-        .insert([payload]);
-
+      const { error } = await supabase.from('news').insert([payload]);
       if (!error) {
         alert('새로운 소식이 성공적으로 등록되었습니다! 📰');
         cancelNewsEdit();
@@ -305,8 +295,8 @@ export default function AdminPage() {
     setEditingMatchId(match.id);
     setHomeScore(match.home_score);
     setAwayScore(match.away_score);
-    setHomeLogo(match.home_logo || '');
-    setAwayLogo(match.away_logo || '');
+    setHomeLogo(match.home_logo && match.home_logo !== "🛡️" ? match.home_logo : ''); // 기설정된 이모지가 있다면 주소칸을 깔끔하게 비워줌
+    setAwayLogo(match.away_logo && match.away_logo !== "🛡️" ? match.away_logo : '');
     setHomeTeam(match.home_team || '계비 UTD');
     setAwayTeam(match.away_team || '');
     setIsPractice(match.is_practice || false);
@@ -333,7 +323,6 @@ export default function AdminPage() {
   return (
     <div className="bg-[#1e060c] min-h-screen text-white p-4 sm:p-6 pb-24">
       <div className="max-w-4xl mx-auto space-y-8">
-        
         {/* 상단 헤더 로우 */}
         <div className="flex justify-between items-center border-b border-white/10 pb-4">
           <h1 className="text-xl sm:text-2xl font-black text-[#d4af37]">🛡️ 구단 매니저 센터</h1>
@@ -344,7 +333,7 @@ export default function AdminPage() {
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-5">
           <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">📊 경기 매치 결과 관리 ({matches.length}건)</h2>
           
-          {/* 신규 경기 결과 등록 폼 */}
+          {/* 1-1. 신규 경기 결과 추가 등록 폼 (로고 주소칸 추가 완료) */}
           <form onSubmit={handleAddMatch} className="bg-black/20 p-4 rounded-xl border border-dashed border-white/10 space-y-3">
             <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1">➕ 새로운 경기 결과 추가 등록</h3>
             <div className="grid grid-cols-2 gap-2.5">
@@ -363,6 +352,16 @@ export default function AdminPage() {
               <div>
                 <label className="block text-[10px] text-gray-400 mb-1">원정 스코어</label>
                 <input type="number" value={addAwayScore} onChange={(e) => setAddAwayScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+              </div>
+              
+              {/* 🔥 추가: 신규 등록용 홈/원정 로고 URL 입력칸 */}
+              <div>
+                <label className="block text-[10px] text-amber-400 font-bold mb-1">홈 팀 로고 URL (이미지 주소)</label>
+                <input type="text" value={addHomeLogo} onChange={(e) => setAddHomeLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-[#d4af37]/30 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1">원정 팀 로고 URL (이미지 주소)</label>
+                <input type="text" value={addAwayLogo} onChange={(e) => setAddAwayLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
               </div>
             </div>
 
@@ -388,7 +387,7 @@ export default function AdminPage() {
             </button>
           </form>
 
-          {/* 기존 매치 리스트 수정/삭제 목록 */}
+          {/* 1-2. 기존 매치 리스트 수정/삭제 목록 */}
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
             {matches.map((m) => (
               <div key={m.id} className="border border-white/5 p-4 rounded-xl bg-black/10">
@@ -410,6 +409,16 @@ export default function AdminPage() {
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">원정 스코어</label>
                         <input type="number" value={awayScore} onChange={(e) => setAwayScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                      </div>
+                      
+                      {/* 🔥 추가: 기존 데이터 수정 폼용 홈/원정 로고 URL 입력칸 */}
+                      <div>
+                        <label className="block text-[10px] text-amber-400 font-bold mb-1">홈 팀 로고 URL 수정</label>
+                        <input type="text" value={homeLogo} onChange={(e) => setHomeLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-[#d4af37]/30 p-2 rounded text-xs text-white focus:border-[#d4af37]" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-400 mb-1">원정 팀 로고 URL 수정</label>
+                        <input type="text" value={awayLogo} onChange={(e) => setAwayLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37]" />
                       </div>
                     </div>
                     
@@ -446,6 +455,12 @@ export default function AdminPage() {
                       <span className="font-bold text-[#d4af37]">{m.home_team || '계비 UTD'}</span> 
                       <span className="font-mono bg-black/40 px-2 py-0.5 rounded font-bold text-white">{m.home_score} : {m.away_score}</span> 
                       <span className="text-gray-300">{m.away_team}</span>
+                      
+                      {/* 미니 로고 등록 여부 표시 */}
+                      <span className="text-[9px] text-gray-500">
+                        {m.home_logo && m.home_logo.startsWith('http') ? '🏠🖼️' : ''}
+                        {m.away_logo && m.away_logo.startsWith('http') ? '🏃🖼️' : ''}
+                      </span>
                     </div>
                     <div className="flex gap-1.5">
                       <button onClick={() => startEdit(m)} className="bg-gray-700 hover:bg-gray-600 text-white px-2.5 py-1.5 rounded text-xs font-bold transition-colors">수정</button>
@@ -463,7 +478,6 @@ export default function AdminPage() {
           <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
             {editingNewsId ? '📝 선택한 구단 소식 수정 중' : '📰 구단 소식 포스팅 관리'} ({news.length}건)
           </h2>
-          
           <form onSubmit={handleSaveNews} className={`space-y-3 p-4 rounded-xl border ${editingNewsId ? 'bg-amber-500/5 border-amber-500/30' : 'bg-black/20 border-white/5'}`}>
             {editingNewsId && (
               <div className="text-xs text-amber-400 font-bold flex justify-between items-center bg-amber-500/10 p-2 rounded-lg mb-2">
@@ -537,7 +551,6 @@ export default function AdminPage() {
         {/* [3구역] 선수 명단 관리 추가/삭제 */}
         <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md">
           <h2 className="text-base sm:text-lg font-bold mb-4">👥 구단 선수 명단 관리 ({players.length}명)</h2>
-          
           <form onSubmit={handleAddPlayer} className="flex gap-2 mb-4 flex-wrap sm:flex-nowrap">
             <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="선수 이름 입력" className="flex-1 min-w-[150px] bg-black/20 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
             <select value={newPlayerPosition} onChange={(e) => setNewPlayerPosition(e.target.value)} className="bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37] cursor-pointer">
@@ -599,7 +612,6 @@ export default function AdminPage() {
             </div>
           )}
         </section>
-
       </div>
     </div>
   );

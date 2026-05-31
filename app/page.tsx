@@ -65,7 +65,7 @@ export default function Home() {
 
     const fetchMatchData = async () => {
       try {
-        // 🔥 최신 등록된 1건의 경기를 완벽하게 땡겨옵니다.
+        // 🔥 matches 테이블에서 가장 최근에 등록한(ID가 가장 큰) 1건만 정확히 가져옵니다.
         const { data, error } = await supabase
           .from('matches')
           .select('*')
@@ -170,16 +170,13 @@ export default function Home() {
     }
   };
 
-  // 🔥 [연동 핵심] DB 데이터가 있으면 쓰고, 로딩 중이거나 없을 때만 기본값을 띄웁니다.
+  // 🛡️ 실시간 연동 필드 매핑 및 예외 방어 데이터 설정
   const displayHomeTeam = match?.home_team || '계비 UTD';
   const displayAwayTeam = match?.away_team || '상대 팀';
   const displayHomeScore = match !== null ? match.home_score : 0;
   const displayAwayScore = match !== null ? match.away_score : 0;
   
-  // 날짜 데이터가 있으면 포맷팅하고 없으면 현재 연도 기준으로 기본 표시
-  const displayDate = match?.date 
-    ? new Date(match.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
-    : '최근 경기 기록';
+  const displayDate = match?.date || '최근 경기 기록';
 
   const homeLogoUrl = match?.home_logo ? match.home_logo.trim() : '';
   const awayLogoUrl = match?.away_logo ? match.away_logo.trim() : '';
@@ -187,13 +184,16 @@ export default function Home() {
   return (
     <div className="bg-[#4a1525] text-white min-h-screen font-sans antialiased pb-20">
       
-      {/* 1. 히어로 구역 (★ 어드민에서 변경한 최신 경기의 홈 로고가 여기에 실시간 반영됩니다) */}
+      {/* 1. 히어로 구역 (★ 이제 DB의 home_logo 주소가 있으면 상단 원형 서클에 실시간으로 표시됩니다) */}
       <section className="flex flex-col items-center justify-center text-center pt-24 pb-16 px-4">
         <div className="w-40 h-40 rounded-full bg-black/30 border-4 border-[#d4af37] flex items-center justify-center overflow-hidden shadow-2xl mb-6">
-          {homeLogoUrl && homeLogoUrl !== "🛡️" ? (
+          {homeLogoUrl && homeLogoUrl.startsWith('http') ? (
             <img src={homeLogoUrl} alt="Club Logo" className="w-full h-full object-cover" />
           ) : (
-            <span className="text-[#d4af37] text-2xl font-black text-center tracking-tighter">계비 UTD</span>
+            <div className="text-center p-2 flex flex-col items-center justify-center">
+              <span className="text-4xl mb-1">🛡️</span>
+              <span className="text-[#d4af37] text-xs font-black tracking-tighter">계비 UTD</span>
+            </div>
           )}
         </div>
         <h1 className="text-4xl sm:text-5xl font-black tracking-wider mb-3">{displayHomeTeam}</h1>
@@ -300,14 +300,13 @@ export default function Home() {
         )}
       </section>
 
-      {/* 5. 매치 스코어 보드 구역 (★ 친선여부 및 매치 결과 배지까지 완벽 동적 연동) */}
+      {/* 5. 매치 스코어 보드 구역 (★ 하드코딩 지우고 DB 내부의 로고 URL을 완벽하게 출력) */}
       <section className="max-w-5xl mx-auto px-4 mb-20">
         <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-6 text-[#e5c158]">
           🏆 경기 기록
         </h2>
         <div className="relative bg-[#36101b] rounded-3xl border border-white/10 shadow-2xl overflow-hidden max-w-3xl mx-auto">
           
-          {/* 어드민 친선 체크 여부 연동 */}
           <div className="absolute top-4 left-4 z-10">
             <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow ${
               match?.is_practice ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'
@@ -316,7 +315,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* 어드민 최종 결과 (승리/패배/무승부) 색상 연동 */}
           <div className="absolute top-4 right-4 z-10">
             <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow border ${
               match?.match_result === '패배' ? 'bg-red-600/30 text-red-400 border-red-500/40' : 
@@ -335,15 +333,20 @@ export default function Home() {
             <div className="text-center py-12 text-sm text-gray-400">경기 데이터를 분석 중입니다...</div>
           ) : (
             <div className="flex items-center justify-between px-6 sm:px-12 py-12">
-              {/* 홈 팀 연동 */}
+              
+              {/* 🛡️ 홈 팀 구역 (이미지 연동 완성) */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
-                  {homeLogoUrl && homeLogoUrl !== "🛡️" ? <img src={homeLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🛡️</span>}
+                  {homeLogoUrl && homeLogoUrl.startsWith('http') ? (
+                    <img src={homeLogoUrl} className="w-full h-full object-cover" alt="Home Team" />
+                  ) : (
+                    <span className="text-3xl sm:text-4xl">🛡️</span>
+                  )}
                 </div>
                 <span className="font-black text-base sm:text-xl text-amber-400 tracking-wide truncate w-full">{displayHomeTeam}</span>
               </div>
 
-              {/* 대형 스코어 연동 */}
+              {/* 🔢 대형 스코어 */}
               <div className="flex flex-col items-center justify-center w-2/12 min-w-[100px]">
                 <div className="flex items-center justify-center gap-3">
                   <span className="text-3xl sm:text-5xl font-black text-[#d4af37] bg-black/40 px-4 py-2 rounded-xl shadow-md">{displayHomeScore}</span>
@@ -352,13 +355,18 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 원정 팀 연동 */}
+              {/* 🏃 원정 팀 구역 (이미지 연동 완성) */}
               <div className="flex flex-col items-center w-5/12 text-center">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/40 border-2 border-white/10 flex items-center justify-center overflow-hidden mb-3 shadow-xl">
-                  {awayLogoUrl && awayLogoUrl !== "🛡️" ? <img src={awayLogoUrl} className="w-full h-full object-cover" /> : <span className="text-4xl">🏃</span>}
+                  {awayLogoUrl && awayLogoUrl.startsWith('http') ? (
+                    <img src={awayLogoUrl} className="w-full h-full object-cover" alt="Away Team" />
+                  ) : (
+                    <span className="text-3xl sm:text-4xl">⚽</span>
+                  )}
                 </div>
                 <span className="font-black text-base sm:text-xl text-white tracking-wide truncate w-full">{displayAwayTeam}</span>
               </div>
+
             </div>
           )}
         </div>
