@@ -51,10 +51,10 @@ export default function AdminPage() {
 
   // 💎 [기본값 설정] 홈 팀 & 원정 팀 고정 상수 설정
   const DEFAULT_HOME_TEAM = '계비 UTD';
-  const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; // 🏠 우리 팀 로고 주소 기입
+  const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
   
-  const DEFAULT_AWAY_TEAM = '잔뇨 FC'; // 🏃 자주 붙는 단골 상대팀명 혹은 가이드 텍스트
-  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; // 🏃 상대 팀 기본 로고 주소 기입
+  const DEFAULT_AWAY_TEAM = '잔뇨 FC'; 
+  const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_lcon.jpg'; 
 
   const [addHomeTeam, setAddHomeTeam] = useState(DEFAULT_HOME_TEAM);
   const [addAwayTeam, setAddAwayTeam] = useState(DEFAULT_AWAY_TEAM);
@@ -131,7 +131,6 @@ export default function AdminPage() {
     }
   };
 
-  // ⚽ 새로운 경기 추가 기능
   const handleAddMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addHomeTeam.trim() || !addAwayTeam.trim()) {
@@ -159,13 +158,10 @@ export default function AdminPage() {
         alert("경기 등록 실패: " + error.message);
       } else {
         alert("새로운 경기 결과가 성공적으로 등록되었습니다! ⚽");
-        
-        // 성공 후 등록 완료 시 지정해둔 홈/원정 기본값으로 리셋
         setAddHomeTeam(DEFAULT_HOME_TEAM);
         setAddHomeLogo(DEFAULT_HOME_LOGO); 
         setAddAwayTeam(DEFAULT_AWAY_TEAM); 
         setAddAwayLogo(DEFAULT_AWAY_LOGO); 
-        
         setAddHomeScore(0);
         setAddAwayScore(0);
         setAddIsPractice(false);
@@ -178,7 +174,6 @@ export default function AdminPage() {
     }
   };
 
-  // 경기 결과 업데이트 (Update)
   const handleUpdateMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMatchId) return;
@@ -211,14 +206,12 @@ export default function AdminPage() {
     }
   };
 
-  // 경기 삭제 기능
   const handleDeleteMatch = async (id: number, home: string, away: string) => {
     if (!confirm(`[${home} vs ${away}] 경기를 삭제하시겠습니까?`)) return;
     const { error } = await supabase.from('matches').delete().eq('id', id);
     if (!error) fetchData();
   };
 
-  // 선수 추가 기능
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return alert('선수 이름을 입력해 주세요.');
@@ -233,14 +226,12 @@ export default function AdminPage() {
     }
   };
 
-  // 선수 삭제 기능
   const handleDeletePlayer = async (id: number, name: string) => {
     if (!confirm(`${name} 선수를 구단 명단에서 제외하시겠습니까?`)) return;
     const { error } = await supabase.from('players').delete().eq('id', id);
     if (!error) fetchData();
   };
 
-  // 소식 등록 및 수정 제출 통합 핸들러
   const handleSaveNews = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsTitle.trim() || !newsContent.trim()) {
@@ -329,132 +320,155 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="bg-[#1e060c] min-h-screen flex items-center justify-center text-white px-4">
-        <form onSubmit={handleLogin} className="bg-[#36101b] p-8 rounded-2xl shadow-xl w-full max-w-sm border border-white/5">
-          <h2 className="text-xl font-bold mb-6 text-center text-[#d4af37]">구단 관리자 로그인</h2>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 입력" className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm mb-4 text-center focus:outline-none focus:border-[#d4af37]" />
-          <button type="submit" className="w-full bg-[#d4af37] text-black font-bold py-3 rounded-xl text-sm hover:bg-[#c4a030]">입장하기</button>
+      <div className="bg-[#050505] min-h-screen flex items-center justify-center text-white px-4 relative overflow-hidden">
+        {/* 🌌 배경 효과 */}
+        <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-[#1a233a]/20 rounded-full blur-[120px] pointer-events-none z-0" />
+        <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[#3b1028]/20 rounded-full blur-[120px] pointer-events-none z-0" />
+
+        <form onSubmit={handleLogin} className="bg-[#0a0a0a] p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-800/60 relative z-10 backdrop-blur-sm">
+          <h2 className="text-xl font-black mb-6 text-center text-[#f2d272] tracking-wider">구단 관리자 로그인</h2>
+          <input 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            placeholder="비밀번호 입력" 
+            className="w-full bg-black/50 border border-gray-800 rounded-xl p-3 text-sm mb-4 text-center text-white focus:outline-none focus:border-[#f2d272] font-mono transition-colors" 
+          />
+          <button type="submit" className="w-full bg-[#f2d272] text-black font-black py-3 rounded-xl text-sm hover:bg-[#e0be5a] active:scale-[0.98] transition-all shadow-lg">
+            입장하기
+          </button>
         </form>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#1e060c] min-h-screen text-white p-4 sm:p-6 pb-24">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="bg-[#050505] min-h-screen text-white p-4 sm:p-6 pb-24 relative overflow-hidden font-sans antialiased">
+      {/* 🌌 배경 빛 번짐 효과 고정 */}
+      <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-[#1a233a]/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[#3b1028]/20 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      <div className="max-w-4xl mx-auto space-y-8 relative z-10">
+        
         {/* 상단 헤더 로우 */}
-        <div className="flex justify-between items-center border-b border-white/10 pb-4">
-          <h1 className="text-xl sm:text-2xl font-black text-[#d4af37]">🛡️ 구단 매니저 센터</h1>
-          <button onClick={handleLogout} className="text-xs bg-red-900/40 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-bold">로그아웃</button>
+        <div className="flex justify-between items-center border-b border-gray-800/60 pb-4">
+          <h1 className="text-xl sm:text-2xl font-black text-[#f2d272] tracking-wide flex items-center gap-2">
+            🛡️ 구단 매니저 센터
+          </h1>
+          <button onClick={handleLogout} className="text-xs bg-red-950/40 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-bold hover:bg-red-900/40 transition-colors">
+            로그아웃
+          </button>
         </div>
 
         {/* [1구역] 경기 스코어 관리 */}
-        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-5">
-          <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">📊 경기 매치 결과 관리 ({matches.length}건)</h2>
+        <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-5 backdrop-blur-sm">
+          <h2 className="text-base sm:text-lg font-black flex items-center gap-2 text-gray-200">
+            📊 경기 매치 결과 관리 <span className="text-xs text-gray-500 font-mono font-normal">({matches.length}건)</span>
+          </h2>
           
           {/* 1-1. 신규 경기 결과 추가 등록 폼 */}
-          <form onSubmit={handleAddMatch} className="bg-black/20 p-4 rounded-xl border border-dashed border-white/10 space-y-3">
-            <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1">➕ 새로운 경기 결과 추가 등록</h3>
+          <form onSubmit={handleAddMatch} className="bg-black/30 p-4 rounded-xl border border-dashed border-gray-800 space-y-3">
+            <h3 className="text-xs font-black text-[#f2d272] flex items-center gap-1">➕ 새로운 경기 결과 추가 등록</h3>
             
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-[10px] text-[#d4af37] font-bold mb-1">홈 팀 명 *</label>
-                <input type="text" value={addHomeTeam} onChange={(e) => setAddHomeTeam(e.target.value)} className="w-full bg-black/40 border border-[#d4af37]/40 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none font-bold" />
+                <label className="block text-[10px] text-gray-400 font-bold mb-1">홈 팀 명 *</label>
+                <input type="text" value={addHomeTeam} onChange={(e) => setAddHomeTeam(e.target.value)} className="w-full bg-black/50 border border-gray-800 p-2.5 rounded-xl text-xs text-white focus:border-[#f2d272] focus:outline-none font-bold transition-colors" />
               </div>
               <div>
-                <label className="block text-[10px] text-amber-400 font-bold mb-1">원정 팀 명 *</label>
-                <input type="text" value={addAwayTeam} onChange={(e) => setAddAwayTeam(e.target.value)} className="w-full bg-black/40 border border-[#d4af37]/40 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none font-bold" />
+                <label className="block text-[10px] text-gray-400 font-bold mb-1">원정 팀 명 *</label>
+                <input type="text" value={addAwayTeam} onChange={(e) => setAddAwayTeam(e.target.value)} className="w-full bg-black/50 border border-gray-800 p-2.5 rounded-xl text-xs text-white focus:border-[#f2d272] focus:outline-none font-bold transition-colors" />
               </div>
               <div>
-                <label className="block text-[10px] text-gray-400 mb-1">홈 스코어</label>
-                <input type="number" value={addHomeScore} onChange={(e) => setAddHomeScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+                <label className="block text-[10px] text-gray-500 mb-1">홈 스코어</label>
+                <input type="number" value={addHomeScore} onChange={(e) => setAddHomeScore(Number(e.target.value))} className="w-full bg-black/50 border border-gray-800 p-2.5 rounded-xl text-xs text-white focus:border-[#f2d272] focus:outline-none font-mono" />
               </div>
               <div>
-                <label className="block text-[10px] text-gray-400 mb-1">원정 스코어</label>
-                <input type="number" value={addAwayScore} onChange={(e) => setAddAwayScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none" />
+                <label className="block text-[10px] text-gray-500 mb-1">원정 스코어</label>
+                <input type="number" value={addAwayScore} onChange={(e) => setAddAwayScore(Number(e.target.value))} className="w-full bg-black/50 border border-gray-800 p-2.5 rounded-xl text-xs text-white focus:border-[#f2d272] focus:outline-none font-mono" />
               </div>
               <div>
-                <label className="block text-[10px] text-[#d4af37] font-bold mb-1">홈 로고 주소</label>
-                <input type="text" value={addHomeLogo} onChange={(e) => setAddHomeLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-[#d4af37]/40 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none text-gray-300" />
+                <label className="block text-[10px] text-gray-500 mb-1">홈 로고 주소</label>
+                <input type="text" value={addHomeLogo} onChange={(e) => setAddHomeLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/50 border border-gray-800 p-2.5 rounded-xl text-xs text-gray-300 focus:border-[#f2d272] focus:outline-none" />
               </div>
               <div>
-                <label className="block text-[10px] text-amber-400 font-bold mb-1">원정 팀 로고 주소</label>
-                <input type="text" value={addAwayLogo} onChange={(e) => setAddAwayLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-[#d4af37]/40 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none text-gray-300" />
+                <label className="block text-[10px] text-gray-500 mb-1">원정 팀 로고 주소</label>
+                <input type="text" value={addAwayLogo} onChange={(e) => setAddAwayLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/50 border border-gray-800 p-2.5 rounded-xl text-xs text-gray-300 focus:border-[#f2d272] focus:outline-none" />
               </div>
               <div className="col-span-2">
-                <label className="block text-[10px] text-amber-400 font-bold mb-1">🗓️ 경기 진행 날짜</label>
-                <input type="date" value={addMatchDate} onChange={(e) => setAddMatchDate(e.target.value)} className="w-full sm:w-fit bg-black/40 border border-[#d4af37]/40 p-2 rounded text-xs text-white focus:border-[#d4af37] focus:outline-none font-mono font-bold" />
+                <label className="block text-[10px] text-gray-400 font-bold mb-1">🗓️ 경기 진행 날짜</label>
+                <input type="date" value={addMatchDate} onChange={(e) => setAddMatchDate(e.target.value)} className="w-full sm:w-fit bg-black/50 border border-gray-800 p-2 rounded-xl text-xs text-white focus:border-[#f2d272] focus:outline-none font-mono font-bold" />
               </div>
             </div>
 
-            <div className="flex items-center gap-4 pt-1 flex-wrap sm:flex-nowrap justify-between">
+            <div className="flex items-center gap-4 pt-2 flex-wrap sm:flex-nowrap justify-between border-t border-gray-900/60">
               <div className="flex items-center gap-1.5">
-                <input type="checkbox" id="addIsPractice" checked={addIsPractice} onChange={(e) => setAddIsPractice(e.target.checked)} className="w-4 h-4 accent-[#d4af37] cursor-pointer" />
-                <label htmlFor="addIsPractice" className="text-xs font-bold text-amber-400 cursor-pointer">🛠️ 연습 매치(친선전)로 표시</label>
+                <input type="checkbox" id="addIsPractice" checked={addIsPractice} onChange={(e) => setAddIsPractice(e.target.checked)} className="w-4 h-4 accent-[#f2d272] cursor-pointer" />
+                <label htmlFor="addIsPractice" className="text-xs font-bold text-gray-400 cursor-pointer select-none">🛠️ 연습 매치(친선전)로 표시</label>
               </div>
 
               <div className="flex gap-4 items-center">
-                <span className="text-[10px] text-gray-400 font-bold">🎯 최종 결과:</span>
+                <span className="text-[10px] text-gray-500 font-bold">🎯 최종 결과:</span>
                 {['승리', '패배', '무승부'].map((res) => (
-                  <label key={res} className="flex items-center gap-1 text-xs font-bold cursor-pointer">
-                    <input type="radio" name="addResultGroup" value={res} checked={addMatchResult === res} onChange={(e) => setAddMatchResult(e.target.value)} className="accent-[#d4af37]" />
+                  <label key={res} className="flex items-center gap-1 text-xs font-bold cursor-pointer select-none">
+                    <input type="radio" name="addResultGroup" value={res} checked={addMatchResult === res} onChange={(e) => setAddMatchResult(e.target.value)} className="accent-[#f2d272]" />
                     {res === '승리' ? '🟢 승' : res === '패배' ? '🔴 패' : '⚪ 무'}
                   </label>
                 ))}
               </div>
             </div>
 
-            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-2 rounded-xl text-xs transition-colors">
+            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-2.5 rounded-xl text-xs shadow-md transition-colors mt-2">
               ✨ 신규 경기 데이터베이스에 저장하기
             </button>
           </form>
 
           {/* 1-2. 기존 매치 리스트 수정/삭제 목록 */}
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 border-t border-gray-900 pt-3">
             {matches.map((m) => (
-              <div key={m.id} className="border border-white/5 p-4 rounded-xl bg-black/10">
+              <div key={m.id} className="border border-gray-900 p-4 rounded-xl bg-black/40 shadow-inner">
                 {editingMatchId === m.id ? (
                   <form onSubmit={handleUpdateMatch} className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">홈 팀 명</label>
-                        <input type="text" value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="text" value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} className="w-full bg-black/50 border border-gray-800 p-2 rounded text-xs text-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">원정 팀 명</label>
-                        <input type="text" value={awayTeam} onChange={(e) => setAwayTeam(e.target.value)} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="text" value={awayTeam} onChange={(e) => setAwayTeam(e.target.value)} className="w-full bg-black/50 border border-gray-800 p-2 rounded text-xs text-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">홈 스코어</label>
-                        <input type="number" value={homeScore} onChange={(e) => setHomeScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="number" value={homeScore} onChange={(e) => setHomeScore(Number(e.target.value))} className="w-full bg-black/50 border border-gray-800 p-2 rounded text-xs text-white font-mono" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">원정 스코어</label>
-                        <input type="number" value={awayScore} onChange={(e) => setAwayScore(Number(e.target.value))} className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white" />
+                        <input type="number" value={awayScore} onChange={(e) => setAwayScore(Number(e.target.value))} className="w-full bg-black/50 border border-gray-800 p-2 rounded text-xs text-white font-mono" />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-amber-400 font-bold mb-1">홈 팀 로고 URL 수정</label>
-                        <input type="text" value={homeLogo} onChange={(e) => setHomeLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-[#d4af37]/30 p-2 rounded text-xs text-white focus:border-[#d4af37]" />
+                        <label className="block text-[10px] text-gray-400 mb-1">홈 팀 로고 URL 수정</label>
+                        <input type="text" value={homeLogo} onChange={(e) => setHomeLogo(e.target.value)} className="w-full bg-black/50 border border-gray-800 p-2 rounded text-xs text-white focus:border-[#f2d272]" />
                       </div>
                       <div>
                         <label className="block text-[10px] text-gray-400 mb-1">원정 팀 로고 URL 수정</label>
-                        <input type="text" value={awayLogo} onChange={(e) => setAwayLogo(e.target.value)} placeholder="https://.../logo.png" className="w-full bg-black/40 border border-white/10 p-2 rounded text-xs text-white focus:border-[#d4af37]" />
+                        <input type="text" value={awayLogo} onChange={(e) => setAwayLogo(e.target.value)} className="w-full bg-black/50 border border-gray-800 p-2 rounded text-xs text-white focus:border-[#f2d272]" />
                       </div>
                       <div className="col-span-2">
                         <label className="block text-[10px] text-gray-400 mb-1">경기 일자 수정</label>
-                        <input type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} className="bg-black/40 border border-white/10 p-2 rounded text-xs text-white font-mono" />
+                        <input type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} className="bg-black/50 border border-gray-800 p-2 rounded text-xs text-white font-mono" />
                       </div>
                     </div>
                     <div className="flex items-center gap-2 pt-1">
-                      <input type="checkbox" id="isPractice" checked={isPractice} onChange={(e) => setIsPractice(e.target.checked)} className="w-4 h-4 accent-[#d4af37]" />
-                      <label htmlFor="isPractice" className="text-xs font-bold text-amber-400 cursor-pointer">🛠️ 연습 경기 매치로 표시</label>
+                      <input type="checkbox" id="isPractice" checked={isPractice} onChange={(e) => setIsPractice(e.target.checked)} className="w-4 h-4 accent-[#f2d272]" />
+                      <label htmlFor="isPractice" className="text-xs font-bold text-gray-400 cursor-pointer">🛠️ 연습 경기 매치로 표시</label>
                     </div>
 
-                    <div className="pt-2 border-t border-white/5 space-y-1.5">
+                    <div className="pt-2 border-t border-gray-900 space-y-1.5">
                       <div className="flex gap-4 items-center">
                         {['승리', '패배', '무승부'].map((res) => (
                           <label key={res} className="flex items-center gap-1.5 text-xs font-bold cursor-pointer">
-                            <input type="radio" name="resultGroup" value={res} checked={matchResult === res} onChange={(e) => setMatchResult(e.target.value)} className="accent-[#d4af37]" />
+                            <input type="radio" name="resultGroup" value={res} checked={matchResult === res} onChange={(e) => setMatchResult(e.target.value)} className="accent-[#f2d272]" />
                             {res === '승리' ? '🟢 승리' : res === '패배' ? '🔴 패배' : '⚪ 무승부'}
                           </label>
                         ))}
@@ -462,8 +476,8 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex gap-2 pt-2">
-                      <button type="submit" className="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded text-xs text-black font-black">💾 수정 완료</button>
-                      <button type="button" onClick={() => setEditingMatchId(null)} className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-xs font-medium">취소</button>
+                      <button type="submit" className="bg-[#f2d272] hover:bg-[#e0be5a] px-4 py-2 rounded-xl text-xs text-black font-black shadow">💾 수정 완료</button>
+                      <button type="button" onClick={() => setEditingMatchId(null)} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-xl text-xs font-bold transition-colors">취소</button>
                     </div>
                   </form>
                 ) : (
@@ -472,21 +486,21 @@ export default function AdminPage() {
                       <span className={`text-[10px] px-2 py-0.5 rounded font-black border ${
                         m.match_result === '승리' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
                         m.match_result === '패배' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-                        'bg-gray-600/20 text-gray-400 border-gray-600/30'
+                        'bg-gray-700/20 text-gray-300 border-gray-600/30'
                       }`}>{m.match_result || '무승부'}</span>
-                      {m.is_practice && <span className="text-[9px] bg-amber-400/10 text-amber-400 border border-amber-400/20 px-1 rounded">친선</span>}
-                      <span className="text-[10px] text-gray-400 font-mono">{m.date}</span>
-                      <span className="font-bold text-[#d4af37]">{m.home_team || '계비 UTD'}</span> 
-                      <span className="font-mono bg-black/40 px-2 py-0.5 rounded font-bold text-white">{m.home_score} : {m.away_score}</span> 
-                      <span className="text-gray-300">{m.away_team}</span>
-                      <span className="text-[9px] text-gray-500">
+                      {m.is_practice && <span className="text-[9px] bg-amber-400/10 text-amber-400 border border-amber-400/20 px-1 rounded font-bold">친선</span>}
+                      <span className="text-[10px] text-gray-500 font-mono font-bold">{m.date}</span>
+                      <span className="font-black text-gray-200">{m.home_team || '계비 UTD'}</span> 
+                      <span className="font-mono bg-black/50 border border-gray-800 px-2 py-0.5 rounded font-bold text-white text-xs">{m.home_score} : {m.away_score}</span> 
+                      <span className="text-gray-400 font-medium">{m.away_team}</span>
+                      <span className="text-[9px] text-gray-600">
                         {m.home_logo && m.home_logo.startsWith('http') ? '🏠🖼️' : ''}
                         {m.away_logo && m.away_logo.startsWith('http') ? '🏃🖼️' : ''}
                       </span>
                     </div>
                     <div className="flex gap-1.5">
-                      <button onClick={() => startEdit(m)} className="bg-gray-700 hover:bg-gray-600 text-white px-2.5 py-1.5 rounded text-xs font-bold transition-colors">수정</button>
-                      <button onClick={() => handleDeleteMatch(m.id, m.home_team || '홈', m.away_team || '원정')} className="bg-red-950/20 hover:bg-red-900/40 text-red-400 border border-red-500/10 px-2.5 py-1.5 rounded text-xs font-bold transition-colors">삭제</button>
+                      <button onClick={() => startEdit(m)} className="bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">수정</button>
+                      <button onClick={() => handleDeleteMatch(m.id, m.home_team || '홈', m.away_team || '원정')} className="bg-red-950/20 hover:bg-red-900/40 text-red-400 border border-red-500/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">삭제</button>
                     </div>
                   </div>
                 )}
@@ -496,26 +510,26 @@ export default function AdminPage() {
         </section>
 
         {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 */}
-        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
-          <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
-            {editingNewsId ? '📝 선택한 구단 소식 수정 중' : '📰 구단 소식 포스팅 관리'} ({news.length}건)
+        <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-4 backdrop-blur-sm">
+          <h2 className="text-base sm:text-lg font-black flex items-center gap-2 text-gray-200">
+            {editingNewsId ? '📝 선택한 구단 소식 수정 중' : '📰 구단 소식 포스팅 관리'} <span className="text-xs text-gray-500 font-mono font-normal">({news.length}건)</span>
           </h2>
-          <form onSubmit={handleSaveNews} className={`space-y-3 p-4 rounded-xl border ${editingNewsId ? 'bg-amber-500/5 border-amber-500/30' : 'bg-black/20 border-white/5'}`}>
+          <form onSubmit={handleSaveNews} className={`space-y-3 p-4 rounded-xl border ${editingNewsId ? 'bg-amber-500/5 border-amber-500/20' : 'bg-black/30 border-gray-800'}`}>
             {editingNewsId && (
-              <div className="text-xs text-amber-400 font-bold flex justify-between items-center bg-amber-500/10 p-2 rounded-lg mb-2">
+              <div className="text-xs text-amber-400 font-bold flex justify-between items-center bg-amber-500/10 p-2 rounded-lg mb-2 border border-amber-500/20">
                 <span>⚠️ 현재 ID: {editingNewsId}번 글을 수정 중입니다.</span>
-                <button type="button" onClick={cancelNewsEdit} className="text-white underline bg-black/30 px-2 py-0.5 rounded">수정 취소</button>
+                <button type="button" onClick={cancelNewsEdit} className="text-white underline bg-black/40 px-2 py-0.5 rounded">수정 취소</button>
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <label className="block text-[10px] text-gray-400 mb-1">소식 제목 *</label>
-                <input type="text" value={newsTitle} onChange={(e) => setNewsTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
+                <input type="text" value={newsTitle} onChange={(e) => setNewsTitle(e.target.value)} placeholder="제목을 입력하세요" className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272] transition-colors" />
               </div>
               <div>
                 <label className="block text-[10px] text-gray-400 mb-1">분류 태그</label>
-                <select value={newsTag} onChange={(e) => setNewsTag(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none cursor-pointer">
+                <select value={newsTag} onChange={(e) => setNewsTag(e.target.value)} className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none cursor-pointer focus:border-[#f2d272]">
                   <option value="공지">🚨 공지사항</option>
                   <option value="경기결과">⚽ 경기결과</option>
                   <option value="이벤트">🎉 이벤트/행사</option>
@@ -526,44 +540,44 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] text-gray-400 mb-1">대표 이미지 주소 (선택)</label>
-                <input type="text" value={newsImageUrl} onChange={(e) => setNewsImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
+                <input type="text" value={newsImageUrl} onChange={(e) => setNewsImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272]" />
               </div>
               <div>
-                <label className="block text-[10px] text-amber-400 font-bold mb-1">🔗 클릭 시 이동할 상세 링크 주소 (선택)</label>
-                <input type="text" value={newsLinkUrl} onChange={(e) => setNewsLinkUrl(e.target.value)} placeholder="https://instagram.com/... (링크 주소)" className="w-full bg-black/40 border border-amber-500/20 focus:border-[#d4af37] rounded-xl p-2.5 text-xs text-white focus:outline-none" />
+                <label className="block text-[10px] text-[#f2d272] font-bold mb-1">🔗 클릭 시 이동할 상세 링크 주소 (선택)</label>
+                <input type="text" value={newsLinkUrl} onChange={(e) => setNewsLinkUrl(e.target.value)} placeholder="https://instagram.com/... (링크 주소)" className="w-full bg-black/50 border border-gray-800 focus:border-[#f2d272] rounded-xl p-2.5 text-xs text-white focus:outline-none transition-colors" />
               </div>
             </div>
 
             <div>
               <label className="block text-[10px] text-gray-400 mb-1">본문 내용 *</label>
-              <textarea rows={3} value={newsContent} onChange={(e) => setNewsContent(e.target.value)} placeholder="구단원들에게 공유할 상세 내용을 적어주세요." className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37] resize-none"></textarea>
+              <textarea rows={3} value={newsContent} onChange={(e) => setNewsContent(e.target.value)} placeholder="구단원들에게 공유할 상세 내용을 적어주세요." className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272] resize-none transition-colors"></textarea>
             </div>
 
-            <div className="flex gap-2">
-              <button type="submit" className={`flex-1 font-black py-2.5 rounded-xl text-xs transition-colors text-black ${editingNewsId ? 'bg-amber-400 hover:bg-amber-500' : 'bg-[#d4af37] hover:bg-[#c4a030]'}`}>
+            <div className="flex gap-2 pt-1">
+              <button type="submit" className={`flex-1 font-black py-2.5 rounded-xl text-xs transition-all shadow text-black ${editingNewsId ? 'bg-amber-400 hover:bg-amber-500' : 'bg-[#f2d272] hover:bg-[#e0be5a]'}`}>
                 {editingNewsId ? '💾 수정 사항 저장하기' : '🚀 새로운 소식 발행하기'}
               </button>
               {editingNewsId && (
-                <button type="button" onClick={cancelNewsEdit} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold">취소</button>
+                <button type="button" onClick={cancelNewsEdit} className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors">취소</button>
               )}
             </div>
           </form>
 
-          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 border-t border-gray-900 pt-3">
             {news.map((item) => (
-              <div key={item.id} className={`border p-3 rounded-xl flex justify-between items-center gap-4 text-xs transition-colors ${editingNewsId === item.id ? 'bg-amber-500/10 border-amber-500/40' : 'bg-black/10 border-white/5'}`}>
+              <div key={item.id} className={`border p-3 rounded-xl flex justify-between items-center gap-4 text-xs transition-colors ${editingNewsId === item.id ? 'bg-amber-500/10 border-amber-500/30' : 'bg-black/30 border-gray-900'}`}>
                 <div className="truncate space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] bg-black/40 text-gray-400 px-1.5 py-0.5 rounded font-mono">ID: {item.id}</span>
-                    <span className="text-[10px] text-amber-300 font-bold">[{item.tag}]</span>
-                    {item.link_url && <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1 rounded border border-amber-500/20">🔗 링크 있음</span>}
-                    <span className="text-gray-400 text-[10px]">{new Date(item.created_at).toLocaleDateString()}</span>
+                    <span className="text-[9px] bg-black/40 text-gray-500 px-1.5 py-0.5 rounded font-mono font-bold border border-gray-900">ID: {item.id}</span>
+                    <span className="text-[10px] text-[#f2d272] font-black">[{item.tag}]</span>
+                    {item.link_url && <span className="text-[9px] bg-blue-500/10 text-blue-400 px-1.5 rounded border border-blue-500/20 font-bold">🔗 링크 연동</span>}
+                    <span className="text-gray-500 font-mono text-[10px] font-bold">{new Date(item.created_at).toLocaleDateString()}</span>
                   </div>
                   <p className="font-bold text-gray-200 truncate">{item.title}</p>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
-                  <button type="button" onClick={() => startEditNews(item)} className="text-[10px] text-amber-400 bg-amber-950/20 hover:bg-amber-900/40 px-2.5 py-1.5 rounded-lg border border-amber-500/10 font-bold">수정</button>
-                  <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2.5 py-1.5 rounded-lg border border-red-500/10 font-bold">삭제</button>
+                  <button type="button" onClick={() => startEditNews(item)} className="text-[10px] text-amber-400 bg-amber-950/20 hover:bg-amber-900/40 px-2.5 py-1.5 rounded-lg border border-amber-500/10 font-bold transition-colors">수정</button>
+                  <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2.5 py-1.5 rounded-lg border border-red-500/10 font-bold transition-colors">삭제</button>
                 </div>
               </div>
             ))}
@@ -571,62 +585,62 @@ export default function AdminPage() {
         </section>
 
         {/* [3구역] 선수 명단 관리 추가/삭제 */}
-        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md">
-          <h2 className="text-base sm:text-lg font-bold mb-4">👥 구단 선수 명단 관리 ({players.length}명)</h2>
-          <form onSubmit={handleAddPlayer} className="flex gap-2 mb-4 flex-wrap sm:flex-nowrap">
-            <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="선수 이름 입력" className="flex-1 min-w-[150px] bg-black/20 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]" />
-            <select value={newPlayerPosition} onChange={(e) => setNewPlayerPosition(e.target.value)} className="bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37] cursor-pointer">
+        <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl backdrop-blur-sm">
+          <h2 className="text-base sm:text-lg font-black mb-4 text-gray-200">👥 구단 선수 명단 관리 <span className="text-xs text-gray-500 font-mono font-normal">({players.length}명)</span></h2>
+          <form onSubmit={handleAddPlayer} className="flex gap-2 mb-4 flex-wrap sm:flex-nowrap bg-black/30 p-3 rounded-xl border border-gray-900">
+            <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="선수 이름 입력" className="flex-1 min-w-[150px] bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272] font-bold" />
+            <select value={newPlayerPosition} onChange={(e) => setNewPlayerPosition(e.target.value)} className="bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272] cursor-pointer font-bold">
               <option value="스트라이커">스트라이커 (공격수)</option>
               <option value="미드필더">미드필더 (중원)</option>
               <option value="수비수">수비수 (디펜더)</option>
               <option value="골키퍼">골키퍼 (GK)</option>
             </select>
-            <button type="submit" className="bg-[#d4af37] text-black font-black px-4 py-2.5 rounded-xl text-xs hover:bg-[#c4a030] whitespace-nowrap w-full sm:w-auto">➕ 선수 등록</button>
+            <button type="submit" className="bg-[#f2d272] text-black font-black px-5 py-2.5 rounded-xl text-xs hover:bg-[#e0be5a] shadow transition-all whitespace-nowrap w-full sm:w-auto">➕ 선수 등록</button>
           </form>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[250px] overflow-y-auto pr-1">
             {players.map((p) => (
-              <div key={p.id} className="bg-black/20 border border-white/5 p-2.5 rounded-xl flex items-center justify-between gap-1">
+              <div key={p.id} className="bg-black/40 border border-gray-900 p-2.5 rounded-xl flex items-center justify-between gap-1 shadow-inner group hover:border-gray-700 transition-colors">
                 <div className="truncate">
-                  <p className="text-xs font-bold text-gray-100 truncate">{p.name}</p>
-                  <p className="text-[9px] text-[#d4af37]/70 font-semibold">{p.position}</p>
+                  <p className="text-xs font-black text-gray-200 truncate">{p.name}</p>
+                  <p className="text-[9px] text-[#f2d272] font-bold opacity-80">{p.position}</p>
                 </div>
-                <button type="button" onClick={() => handleDeletePlayer(p.id, p.name)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-1.5 py-1 rounded border border-red-500/10">제외</button>
+                <button type="button" onClick={() => handleDeletePlayer(p.id, p.name)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2 py-1 rounded border border-red-500/10 font-bold transition-colors">제외</button>
               </div>
             ))}
           </div>
         </section>
 
         {/* [4구역] 문의 메세지 내역 */}
-        <section className="bg-[#36101b] p-5 sm:p-6 rounded-2xl border border-white/5 shadow-md space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/5 pb-3">
-            <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">✉️ 접수된 문의/신청 리스트 ({filteredMessages.length}건)</h2>
-            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 self-start sm:self-auto text-[11px] font-bold">
-              <button type="button" onClick={() => setMessageFilter('all')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'all' ? 'bg-[#d4af37] text-black' : 'text-gray-400 hover:text-white'}`}>전체보기</button>
-              <button type="button" onClick={() => setMessageFilter('join')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'join' ? 'bg-amber-500 text-black' : 'text-gray-400 hover:text-white'}`}>입단지원</button>
-              <button type="button" onClick={() => setMessageFilter('inquiry')} className={`px-3 py-1 rounded-lg transition-colors ${messageFilter === 'inquiry' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'}`}>일반문의</button>
+        <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-4 backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-900 pb-3">
+            <h2 className="text-base sm:text-lg font-black flex items-center gap-2 text-gray-200">✉️ 접수된 문의/신청 리스트 <span className="text-xs text-gray-500 font-mono font-normal">({filteredMessages.length}건)</span></h2>
+            <div className="flex bg-black/50 p-1 rounded-xl border border-gray-800 self-start sm:self-auto text-[11px] font-bold">
+              <button type="button" onClick={() => setMessageFilter('all')} className={`px-3 py-1 rounded-lg transition-all ${messageFilter === 'all' ? 'bg-[#f2d272] text-black font-black shadow-sm' : 'text-gray-400 hover:text-white'}`}>전체보기</button>
+              <button type="button" onClick={() => setMessageFilter('join')} className={`px-3 py-1 rounded-lg transition-all ${messageFilter === 'join' ? 'bg-amber-500 text-black font-black' : 'text-gray-400 hover:text-white'}`}>입단지원</button>
+              <button type="button" onClick={() => setMessageFilter('inquiry')} className={`px-3 py-1 rounded-lg transition-all ${messageFilter === 'inquiry' ? 'bg-blue-600 text-white font-black' : 'text-gray-400 hover:text-white'}`}>일반문의</button>
             </div>
           </div>
 
           {filteredMessages.length === 0 ? (
-            <p className="text-center text-xs text-gray-400 py-10 bg-black/10 rounded-2xl border border-white/5">선택한 분류에 수신된 메시지가 없습니다.</p>
+            <p className="text-center text-xs text-gray-500 py-12 bg-black/20 rounded-2xl border border-dashed border-gray-800">선택한 분류에 수신된 메시지가 없습니다.</p>
           ) : (
             <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
               {filteredMessages.map((msg) => (
-                <div key={msg.id} className="bg-black/20 border border-white/5 p-4 rounded-xl text-xs space-y-2 relative group hover:border-white/10 transition-colors">
+                <div key={msg.id} className="bg-black/30 border border-gray-900 p-4 rounded-xl text-xs space-y-2 relative group hover:border-gray-800 transition-colors shadow-inner">
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-black ${msg.type === 'join' ? 'bg-amber-400 text-black' : 'bg-blue-500 text-white'}`}>
+                        <span className={`text-[9px] px-2 py-0.5 rounded font-black tracking-wide ${msg.type === 'join' ? 'bg-amber-400 text-black' : 'bg-blue-600 text-white'}`}>
                           {msg.type === 'join' ? '입단 지원' : '일반 문의'}
                         </span>
-                        <strong className="text-gray-200 text-sm">{msg.name}</strong>
+                        <strong className="text-gray-200 text-sm font-black">{msg.name}</strong>
                       </div>
-                      <span className="text-[10px] text-gray-500 block font-mono">{msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}</span>
+                      <span className="text-[10px] text-gray-500 block font-mono font-bold">{msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}</span>
                     </div>
-                    <button type="button" onClick={() => handleDeleteMessage(msg.id, msg.name)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/50 border border-red-500/20 px-2 py-1 rounded-lg font-bold shadow-sm transition-colors">문의 삭제</button>
+                    <button type="button" onClick={() => handleDeleteMessage(msg.id, msg.name)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/50 border border-red-500/20 px-2.5 py-1 rounded-lg font-bold shadow-sm transition-colors">문의 삭제</button>
                   </div>
-                  <p className="text-gray-300 bg-black/20 p-3 rounded-xl border border-white/5 whitespace-pre-wrap leading-relaxed break-all font-sans select-text">
+                  <p className="text-gray-300 bg-black/40 p-3 rounded-xl border border-gray-900/60 whitespace-pre-wrap leading-relaxed break-all font-sans select-text font-medium">
                     {msg.content}
                   </p>
                 </div>
