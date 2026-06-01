@@ -6,7 +6,13 @@ import Link from 'next/link';
 // 서버 액션 임포트 (경로가 다를 경우 @/app/actions 등으로 수정해주세요)
 import { sendInquiryEmail } from './actions'; 
 
-interface Player { id: number; name: string; position: string; }
+interface Player { 
+  id: number; 
+  name: string; 
+  position: string; 
+  back_number?: number;       // 🔢 등번호 컬럼 추가
+  lineup_spot?: number | null; // ⚽ 라인업 배치 구역 컬럼 추가
+}
 
 interface MatchData { 
   id: number; 
@@ -31,17 +37,35 @@ interface NewsItem {
   created_at: string;
 }
 
+// 🟢 전술판 위의 선수 마커 컴포넌트
+function PlayerDot({ number, name, isGK = false }: { number: string, name: string, isGK?: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-1 group cursor-pointer z-10">
+      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black shadow-md border 
+        ${isGK 
+          ? 'bg-[#f2d272] text-black border-[#e0be5a] shadow-[0_0_10px_rgba(242,210,114,0.4)]' 
+          : 'bg-white text-black border-gray-300 group-hover:bg-green-500 group-hover:text-white group-hover:border-green-400 transition-colors'
+        }`}>
+        {number}
+      </div>
+      <span className="text-[9px] sm:text-[10px] font-bold text-gray-300 group-hover:text-white transition-colors bg-black/40 px-1 rounded whitespace-nowrap">
+        {name}
+      </span>
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'inquiry' | 'join'>('inquiry');
   const [players, setPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
-  
+
   // 로딩 및 폼 상태 관리
   const [matchLoading, setMatchLoading] = useState<boolean>(true);
   const [newsLoading, setNewsLoading] = useState<boolean>(true);
   const [senderName, setSenderName] = useState('');
-  
+
   // ✨ 이메일 입력 방식 고도화 상태 변수
   const [emailId, setEmailId] = useState('');
   const [emailDomain, setEmailDomain] = useState('naver.com');
@@ -141,7 +165,6 @@ export default function Home() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     // ✨ 조합된 최종 이메일 주소 생성
     const fullEmail = `${emailId.trim()}@${emailDomain.trim()}`;
 
@@ -164,7 +187,6 @@ export default function Home() {
 
     try {
       setIsSubmitting(true);
-      
       const { error } = await supabase
         .from('messages')
         .insert([
@@ -214,6 +236,15 @@ export default function Home() {
     }
   };
 
+  // 🛡️ 고유 포지션 ID에 매핑된 선수 정보를 가져오는 매퍼 내부 함수
+  const getSpotPlayer = (spotNum: number, defaultRole: string) => {
+    const matched = players.find(p => p.lineup_spot === spotNum);
+    return {
+      number: matched?.back_number !== undefined && matched?.back_number !== null ? String(matched.back_number) : '-',
+      name: matched?.name || defaultRole
+    };
+  };
+
   const displayHomeTeam = match?.home_team || 'Gabby UTD';
   const displayAwayTeam = match?.away_team || '상대 팀';
   const displayHomeScore = match !== null ? match.home_score : 0;
@@ -257,8 +288,10 @@ export default function Home() {
           </div>
 
           {/* 우측 네비게이션 메뉴 링크 */}
-          <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0">
-            <div onClick={() => scrollToSection('hero')} className="text-[#f2d272] border-b-2 border-[#f2d272] pb-1 cursor-pointer">메인 홈</div>
+          <div className="flex gap-4 sm:gap-5 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0">
+            <div onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors cursor-pointer">메인 홈</div>
+            <div onClick={() => scrollToSection('lineup')} className="hover:text-white text-[#f2d272] transition-colors cursor-pointer">라인업</div>
+            <div onClick={() => scrollToSection('players')} className="hover:text-white transition-colors cursor-pointer">선수단</div>
             <Link href="/matches" className="hover:text-white transition-colors">MATCHES</Link>
           </div>
 
@@ -267,9 +300,7 @@ export default function Home() {
 
       {/* 🌌 1. 히어로 구역 (미드나잇 블루 테마) */}
       <section id="hero" className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-4 py-16 bg-gradient-to-b from-[#1a233a]/40 via-[#0a0d14] to-[#050505]">
-        {/* 네온 블루 빛 번짐 효과 */}
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#1a233a]/30 rounded-full blur-[120px] pointer-events-none" />
-        
         <div className="relative z-10 flex flex-col items-center">
           <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#1a233a] flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(26,35,58,0.6)] mb-6 relative transition-transform hover:scale-105 duration-500">
             <div className="absolute inset-0 rounded-full border border-white/10 m-2 z-20"></div>
@@ -281,7 +312,6 @@ export default function Home() {
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
           </div>
-          
           <span className="text-[#f2d272] uppercase tracking-[0.3em] text-xs font-bold block mb-4">The New Era of Football</span>
           <h1 className="text-5xl sm:text-7xl font-black tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
             {displayHomeTeam}
@@ -378,6 +408,50 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ⚽ 3.5. 선발 라인업 스쿼드 전술판 섹션 (신규 통합 추가) */}
+      <section id="lineup" className="bg-[#050505] w-full py-20 border-t border-gray-800/30 relative z-10">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="mb-8 text-center sm:text-left">
+            <span className="text-[10px] text-green-400 font-mono font-bold block uppercase tracking-widest">Starting Lineup</span>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">⚽ 금주 선발 라인업</h2>
+          </div>
+          
+          <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col items-center py-12">
+            {/* 축구장 잔디 가로 패턴 효과 오버레이 */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(34, 197, 94, 0.08) 30px, rgba(34, 197, 94, 0.08) 60px)' }} />
+            {/* 하프라인 및 중앙 서클 센터라인 */}
+            <div className="absolute top-1/2 left-0 w-full h-[2px] bg-green-900/40" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-green-900/40 rounded-full" />
+            
+            <div className="relative z-10 w-full max-w-sm flex flex-col gap-10">
+              {/* 공격수 라인 (FW: 9, 10, 11) */}
+              <div className="flex justify-around">
+                <PlayerDot number={getSpotPlayer(9, 'LW').number} name={getSpotPlayer(9, 'LW').name} />
+                <PlayerDot number={getSpotPlayer(10, 'ST').number} name={getSpotPlayer(10, 'ST').name} />
+                <PlayerDot number={getSpotPlayer(11, 'RW').number} name={getSpotPlayer(11, 'RW').name} />
+              </div>
+              {/* 미드필더 라인 (MF: 6, 7, 8) */}
+              <div className="flex justify-between px-4">
+                <PlayerDot number={getSpotPlayer(6, 'LCM').number} name={getSpotPlayer(6, 'LCM').name} />
+                <PlayerDot number={getSpotPlayer(7, 'CM').number} name={getSpotPlayer(7, 'CM').name} />
+                <PlayerDot number={getSpotPlayer(8, 'RCM').number} name={getSpotPlayer(8, 'RCM').name} />
+              </div>
+              {/* 수비수 라인 (DF: 2, 3, 4, 5) */}
+              <div className="flex justify-between">
+                <PlayerDot number={getSpotPlayer(2, 'LB').number} name={getSpotPlayer(2, 'LB').name} />
+                <PlayerDot number={getSpotPlayer(3, 'LCB').number} name={getSpotPlayer(3, 'LCB').name} />
+                <PlayerDot number={getSpotPlayer(4, 'RCB').number} name={getSpotPlayer(4, 'RCB').name} />
+                <PlayerDot number={getSpotPlayer(5, 'RB').number} name={getSpotPlayer(5, 'RB').name} />
+              </div>
+              {/* 골키퍼 (GK: 1) */}
+              <div className="flex justify-center mt-2">
+                <PlayerDot number={getSpotPlayer(1, 'GK').number} name={getSpotPlayer(1, 'GK').name} isGK={true} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 👥 4. 선수 명단 구역 */}
       <section id="players" className="bg-gradient-to-b from-[#050505] to-[#0a0a0a] w-full py-20 border-t border-gray-800/30">
         <div className="max-w-5xl mx-auto px-4">
@@ -428,7 +502,6 @@ export default function Home() {
 
       {/* ⚔️ 5. 매치 스코어 보드 구역 (블루 vs 핑크 크로스 오버) */}
       <section id="match" className="bg-[#0a0a0a] w-full py-20 relative">
-        {/* 양측 그라데이션 오버레이 */}
         <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[300px] h-[300px] bg-[#1a233a]/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[300px] h-[300px] bg-[#3b1028]/20 rounded-full blur-[100px] pointer-events-none" />
 
@@ -445,7 +518,6 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* 블루 -> 블랙 -> 핑크로 이어지는 매치카드 배경 */}
           <div className="relative bg-gradient-to-r from-[#1a233a]/80 via-[#050505] to-[#3b1028]/80 rounded-3xl border border-gray-700/50 shadow-2xl overflow-hidden backdrop-blur-sm">
             <div className="absolute top-4 left-4 z-20">
               <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow ${
@@ -509,7 +581,6 @@ export default function Home() {
 
       {/* 💖 6. 연락하기 문의 폼 구역 (네온 핑크 테마) */}
       <section id="contact" className="relative w-full py-24 bg-gradient-to-t from-[#3b1028]/30 via-[#0a0508] to-[#050505]">
-        {/* 우측 하단 네온 핑크 빛 번짐 효과 */}
         <div className="absolute bottom-0 right-1/4 w-[450px] h-[450px] bg-[#3b1028]/20 rounded-full blur-[130px] pointer-events-none" />
 
         <div className="max-w-2xl mx-auto px-4 relative z-10">
@@ -519,7 +590,6 @@ export default function Home() {
             </h2>
             <p className="text-gray-400 text-sm">입단 신청 및 구단 관련 문의를 남겨주세요.</p>
           </div>
-          
           <div className="grid grid-cols-2 bg-white/5 rounded-xl p-1 mb-6 border border-white/10">
             <button
               type="button"
@@ -542,7 +612,6 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSendMessage} className="bg-black/40 backdrop-blur-md rounded-2xl p-6 sm:p-8 border border-gray-800/60 shadow-2xl space-y-5">
-            
             {/* 👤 이름 입력란 */}
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1.5">이름 *</label>
@@ -588,7 +657,6 @@ export default function Home() {
                     <option value="custom">직접 입력</option>
                   </select>
                 </div>
-                
                 {domainSelect === 'custom' && (
                   <input 
                     type="text" 
