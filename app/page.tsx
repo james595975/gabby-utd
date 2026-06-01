@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
+
 // 서버 액션 임포트 (경로가 다를 경우 @/app/actions 등으로 수정해주세요)
 import { sendInquiryEmail } from './actions'; 
 
@@ -10,7 +11,7 @@ interface Player {
   id: number; 
   name: string; 
   position: string; 
-  back_number?: number;       // 🔢 등번호 컬럼 추가
+  back_number?: number; // 🔢 등번호 컬럼 추가
   lineup_spot?: number | null; // ⚽ 라인업 배치 구역 컬럼 추가
 }
 
@@ -45,7 +46,8 @@ function PlayerDot({ number, name, isGK = false }: { number: string, name: strin
         ${isGK 
           ? 'bg-[#f2d272] text-black border-[#e0be5a] shadow-[0_0_10px_rgba(242,210,114,0.4)]' 
           : 'bg-white text-black border-gray-300 group-hover:bg-green-500 group-hover:text-white group-hover:border-green-400 transition-colors'
-        }`}>
+        }`}
+      >
         {number}
       </div>
       <span className="text-[9px] sm:text-[10px] font-bold text-gray-300 group-hover:text-white transition-colors bg-black/40 px-1 rounded whitespace-nowrap">
@@ -165,21 +167,17 @@ export default function Home() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    // ✨ 조합된 최종 이메일 주소 생성
     const fullEmail = `${emailId.trim()}@${emailDomain.trim()}`;
 
-    // 1. 공백 필수 항목 검사
     if (!senderName.trim() || !emailId.trim() || !emailDomain.trim() || !phone.trim() || !content.trim()) {
       return alert('필수 항목(*)을 모두 입력해 주세요.');
     }
 
-    // 2. 이름 최종 유효성 검사 (한글, 영문, 공백만 최종 허용)
     const nameRegex = /^[a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/;
     if (!nameRegex.test(senderName.trim())) {
       return alert('이름 필드에는 문자(한글 또는 영문)만 입력할 수 있습니다.');
     }
 
-    // 3. 연락처 최종 유효성 검사 (오직 숫자만 허용)
     const phoneRegex = /^[0-9]+$/;
     if (!phoneRegex.test(phone.trim())) {
       return alert('연락처 필드에는 숫자만 입력할 수 있습니다.');
@@ -232,11 +230,20 @@ export default function Home() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // 상단 고정 네비바 높이(약 60px)만큼 여백 확보 후 스크롤
+      const offset = 60;
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
-  // 🛡️ 고유 포지션 ID에 매핑된 선수 정보를 가져오는 매퍼 내부 함수
   const getSpotPlayer = (spotNum: number, defaultRole: string) => {
     const matched = players.find(p => p.lineup_spot === spotNum);
     return {
@@ -259,20 +266,19 @@ export default function Home() {
   return (
     <div className="bg-[#050505] text-white min-h-screen font-sans antialiased selection:bg-[#ff00ff]/30 selection:text-white overflow-x-hidden">
       
-      {/* 📌 최상단 고정 네비게이션 바 */}
-      <nav className="border-b border-white/5 bg-black/60 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3">
+      {/* 📌 [고정 및 스캔강화] 최상단 고정 네비게이션 바 */}
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-lg transition-all duration-300">
         <div className="max-w-5xl mx-auto flex justify-between items-center gap-4">
-          
           {/* 구단 로고 및 이름 */}
           <div 
             onClick={() => scrollToSection('hero')} 
-            className="font-black text-lg tracking-wider text-white hover:text-[#f2d272] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0"
+            className="font-black text-lg tracking-wider text-white hover:text-[#f2d272] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 select-none"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={homeLogoUrl} 
               alt="Gabby UTD Mini Logo" 
-              className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5"
+              className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5 border border-white/10"
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
             <span>Gabby UTD</span>
@@ -288,13 +294,12 @@ export default function Home() {
           </div>
 
           {/* 우측 네비게이션 메뉴 링크 */}
-          <div className="flex gap-4 sm:gap-5 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0">
+          <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0 select-none">
             <div onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors cursor-pointer">메인 홈</div>
             <div onClick={() => scrollToSection('lineup')} className="hover:text-white text-[#f2d272] transition-colors cursor-pointer">라인업</div>
             <div onClick={() => scrollToSection('players')} className="hover:text-white transition-colors cursor-pointer">선수단</div>
             <Link href="/matches" className="hover:text-white transition-colors">MATCHES</Link>
           </div>
-
         </div>
       </nav>
 
@@ -332,7 +337,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🖤 2. 팀 소개 구역 (차콜 블랙) */}
+      {/* 🖤 2. ทีม 소개 구역 (차콜 블랙) */}
       <section id="about" className="bg-[#050505] w-full py-16 sm:py-24 relative z-10">
         <div className="max-w-3xl mx-auto px-5 relative">
           <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] rounded-3xl p-6 sm:p-12 border border-gray-800/60 shadow-2xl text-center relative overflow-hidden">
@@ -408,21 +413,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ⚽ 3.5. 선발 라인업 스쿼드 전술판 섹션 (신규 통합 추가) */}
+      {/* ⚽ 3.5. 선발 라인업 스쿼드 전술판 섹션 */}
       <section id="lineup" className="bg-[#050505] w-full py-20 border-t border-gray-800/30 relative z-10">
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-8 text-center sm:text-left">
             <span className="text-[10px] text-green-400 font-mono font-bold block uppercase tracking-widest">Starting Lineup</span>
             <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">⚽ 금주 선발 라인업</h2>
           </div>
-          
           <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col items-center py-12">
-            {/* 축구장 잔디 가로 패턴 효과 오버레이 */}
             <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(34, 197, 94, 0.08) 30px, rgba(34, 197, 94, 0.08) 60px)' }} />
-            {/* 하프라인 및 중앙 서클 센터라인 */}
             <div className="absolute top-1/2 left-0 w-full h-[2px] bg-green-900/40" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-green-900/40 rounded-full" />
-            
             <div className="relative z-10 w-full max-w-sm flex flex-col gap-10">
               {/* 공격수 라인 (FW: 9, 10, 11) */}
               <div className="flex justify-around">
@@ -500,7 +501,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ⚔️ 5. 매치 스코어 보드 구역 (블루 vs 핑크 크로스 오버) */}
+      {/* ⚔️ 5. 매치 스코어 보드 구역 */}
       <section id="match" className="bg-[#0a0a0a] w-full py-20 relative">
         <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[300px] h-[300px] bg-[#1a233a]/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[300px] h-[300px] bg-[#3b1028]/20 rounded-full blur-[100px] pointer-events-none" />
@@ -579,7 +580,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 💖 6. 연락하기 문의 폼 구역 (네온 핑크 테마) */}
+      {/* 💖 6. 연락하기 문의 폼 구역 */}
       <section id="contact" className="relative w-full py-24 bg-gradient-to-t from-[#3b1028]/30 via-[#0a0508] to-[#050505]">
         <div className="absolute bottom-0 right-1/4 w-[450px] h-[450px] bg-[#3b1028]/20 rounded-full blur-[130px] pointer-events-none" />
 
@@ -612,7 +613,6 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSendMessage} className="bg-black/40 backdrop-blur-md rounded-2xl p-6 sm:p-8 border border-gray-800/60 shadow-2xl space-y-5">
-            {/* 👤 이름 입력란 */}
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1.5">이름 *</label>
               <input 
@@ -624,7 +624,6 @@ export default function Home() {
               />
             </div>
 
-            {/* 📧 이메일 선택 및 입력란 */}
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1.5">이메일 *</label>
               <div className="space-y-2">
@@ -669,7 +668,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 📱 연락처 입력란 */}
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1.5">연락처 *</label>
               <input 

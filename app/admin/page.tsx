@@ -522,7 +522,7 @@ export default function AdminPage() {
           </section>
         )}
 
-        {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 (정상 복구 완료 🛡️) */}
+        {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 (대표 이미지 란 완벽 복구 🖼️) */}
         {activeTab === 'news' && (
           <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-5 backdrop-blur-sm">
             <h2 className="text-base sm:text-lg font-black flex items-center gap-2 text-gray-200">
@@ -543,6 +543,19 @@ export default function AdminPage() {
                   </select>
                 </div>
               </div>
+
+              {/* 📷 [완벽 복구] 대표 이미지 링크 및 외부 바로가기 주소 링크란 추가 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] text-gray-400 mb-1">🖼️ 대표 이미지 링크 주소 (선택)</label>
+                  <input type="text" value={newsImageUrl} onChange={(e) => setNewsImageUrl(e.target.value)} placeholder="https://.../image.jpg" className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#f2d272]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-gray-400 mb-1">🔗 외부 이동 링크 주소 (선택)</label>
+                  <input type="text" value={newsLinkUrl} onChange={(e) => setNewsLinkUrl(e.target.value)} placeholder="https://instagram.com/..." className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-gray-300 focus:outline-none focus:border-[#f2d272]" />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] text-gray-400 mb-1">본문 내용 *</label>
                 <textarea rows={4} value={newsContent} onChange={(e) => setNewsContent(e.target.value)} placeholder="공유할 상세 내용을 적어주세요." className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#f2d272] resize-none"></textarea>
@@ -559,7 +572,6 @@ export default function AdminPage() {
               </div>
             </form>
 
-            {/* 💎 [복구 완료된 구역] 기존 게시물 로드 및 수정/삭제 제어 컨트롤러 */}
             <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 border-t border-gray-900 pt-3">
               <h3 className="text-xs font-black text-gray-400 mb-1">📋 현재 배포된 게시글 관리 리스트</h3>
               {news.length === 0 ? (
@@ -567,12 +579,18 @@ export default function AdminPage() {
               ) : (
                 news.map((item) => (
                   <div key={item.id} className="border border-gray-900 p-3.5 rounded-xl bg-black/40 flex justify-between items-center gap-4">
-                    <div className="truncate">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-gray-800 text-gray-300 border border-gray-700">{item.tag}</span>
-                        <h4 className="text-xs font-black text-gray-200 truncate">{item.title}</h4>
+                    <div className="truncate flex items-center gap-3">
+                      {/* 이미지 주소가 있을 경우 썸네일 노출 */}
+                      {item.image_url && (
+                        <img src={item.image_url} alt="thumbnail" className="w-10 h-10 rounded-lg object-cover bg-gray-950 flex-shrink-0 border border-gray-800" />
+                      )}
+                      <div className="truncate">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-gray-800 text-gray-300 border border-gray-700">{item.tag}</span>
+                          <h4 className="text-xs font-black text-gray-200 truncate">{item.title}</h4>
+                        </div>
+                        <p className="text-[11px] text-gray-500 truncate">{item.content}</p>
                       </div>
-                      <p className="text-[11px] text-gray-500 truncate">{item.content}</p>
                     </div>
                     <div className="flex gap-1.5 flex-shrink-0">
                       <button type="button" onClick={() => startEditNews(item)} className="bg-gray-800 hover:bg-gray-700 text-gray-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors">
