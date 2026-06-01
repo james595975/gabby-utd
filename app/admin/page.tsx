@@ -60,7 +60,7 @@ export default function AdminPage() {
   const [matchResult, setMatchResult] = useState('무승부'); 
   const [matchDate, setMatchDate] = useState('');
 
-  // 💎 홈 팀 & 원정 팀 고정 상수 설정
+  // 홈 팀 & 원정 팀 고정 상수 설정
   const DEFAULT_HOME_TEAM = '계비 UTD';
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
   const DEFAULT_AWAY_TEAM = '잔뇨 FC'; 
@@ -76,10 +76,10 @@ export default function AdminPage() {
   const [addMatchResult, setAddMatchResult] = useState('승리'); 
   const [addMatchDate, setAddMatchDate] = useState('');
 
-  // 💎 신규 선수 등록 관련 상태 (+ 초기 전술 스팟 상태 추가)
+  // 신규 선수 등록 관련 상태
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
-  const [newPlayerLineupSpot, setNewPlayerLineupSpot] = useState<string>(''); // 공백은 대기명단(null) 의미
+  const [newPlayerLineupSpot, setNewPlayerLineupSpot] = useState<string>('');
 
   // 구단 소식 등록 및 수정 관련 상태
   const [editingNewsId, setEditingNewsId] = useState<number | null>(null);
@@ -142,7 +142,6 @@ export default function AdminPage() {
     }
   };
 
-  // 특정 포지션 스팟(1~11)에 선수를 실시간 배치/수정하는 함수
   const handleAssignSpot = async (playerId: number, spotNumber: number | null) => {
     try {
       const { error } = await supabase
@@ -241,7 +240,6 @@ export default function AdminPage() {
     if (!error) fetchData();
   };
 
-  // 💎 [수정] 선수 등록 시 lineup_spot 컬럼 컬레이션 포함 처리
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return alert('선수 이름을 입력해 주세요.');
@@ -256,7 +254,7 @@ export default function AdminPage() {
 
     if (!error) {
       setNewPlayerName('');
-      setNewPlayerLineupSpot(''); // 입력창 초기화
+      setNewPlayerLineupSpot('');
       fetchData();
     } else {
       alert('선수 등록 실패: ' + error.message);
@@ -524,9 +522,9 @@ export default function AdminPage() {
           </section>
         )}
 
-        {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 */}
+        {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 (정상 복구 완료 🛡️) */}
         {activeTab === 'news' && (
-          <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-4 backdrop-blur-sm">
+          <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-5 backdrop-blur-sm">
             <h2 className="text-base sm:text-lg font-black flex items-center gap-2 text-gray-200">
               {editingNewsId ? '📝 선택한 구단 소식 수정 중' : '📰 구단 소식 포스팅 관리'} <span className="text-xs text-gray-500 font-mono font-normal">({news.length}건)</span>
             </h2>
@@ -549,19 +547,53 @@ export default function AdminPage() {
                 <label className="block text-[10px] text-gray-400 mb-1">본문 내용 *</label>
                 <textarea rows={4} value={newsContent} onChange={(e) => setNewsContent(e.target.value)} placeholder="공유할 상세 내용을 적어주세요." className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:border-[#f2d272] resize-none"></textarea>
               </div>
-              <button type="submit" className="w-full bg-[#f2d272] text-black font-black py-2.5 rounded-xl text-xs hover:bg-[#e0be5a] shadow">
-                {editingNewsId ? '💾 수정 사항 저장하기' : '🚀 새로운 소식 발행하기'}
-              </button>
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 bg-[#f2d272] text-black font-black py-2.5 rounded-xl text-xs hover:bg-[#e0be5a] shadow">
+                  {editingNewsId ? '💾 수정 사항 저장하기' : '🚀 새로운 소식 발행하기'}
+                </button>
+                {editingNewsId && (
+                  <button type="button" onClick={cancelNewsEdit} className="bg-gray-800 hover:bg-gray-700 text-white font-bold px-4 rounded-xl text-xs">
+                    취소
+                  </button>
+                )}
+              </div>
             </form>
+
+            {/* 💎 [복구 완료된 구역] 기존 게시물 로드 및 수정/삭제 제어 컨트롤러 */}
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 border-t border-gray-900 pt-3">
+              <h3 className="text-xs font-black text-gray-400 mb-1">📋 현재 배포된 게시글 관리 리스트</h3>
+              {news.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-4">등록된 구단 소식이 아직 없습니다.</p>
+              ) : (
+                news.map((item) => (
+                  <div key={item.id} className="border border-gray-900 p-3.5 rounded-xl bg-black/40 flex justify-between items-center gap-4">
+                    <div className="truncate">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-gray-800 text-gray-300 border border-gray-700">{item.tag}</span>
+                        <h4 className="text-xs font-black text-gray-200 truncate">{item.title}</h4>
+                      </div>
+                      <p className="text-[11px] text-gray-500 truncate">{item.content}</p>
+                    </div>
+                    <div className="flex gap-1.5 flex-shrink-0">
+                      <button type="button" onClick={() => startEditNews(item)} className="bg-gray-800 hover:bg-gray-700 text-gray-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors">
+                        수정
+                      </button>
+                      <button type="button" onClick={() => handleDeleteNews(item.id, item.title)} className="bg-red-950/20 hover:bg-red-900/40 text-red-400 border border-red-500/10 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors">
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </section>
         )}
 
-        {/* [3구역] 선수 명단 관리 추가/삭제 (스팟 번호 기능 추가 완료) */}
+        {/* [3구역] 선수 명단 관리 */}
         {activeTab === 'players' && (
           <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl backdrop-blur-sm">
             <h2 className="text-base sm:text-lg font-black mb-4 text-gray-200">👥 구단 선수 명단 관리 <span className="text-xs text-gray-500 font-mono font-normal">({players.length}명)</span></h2>
             
-            {/* 🛠️ 수정된 선수 등록 폼: 포지션 옆에 스팟 번호 입력 필드 바인딩 */}
             <form onSubmit={handleAddPlayer} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 mb-4 bg-black/30 p-3 rounded-xl border border-gray-900 items-end">
               <div>
                 <label className="block text-[10px] text-gray-400 font-bold mb-1">선수 이름 *</label>
@@ -598,7 +630,6 @@ export default function AdminPage() {
               </button>
             </form>
 
-            {/* 🛠️ 수정된 선수 목록 카드: 현재 매칭된 스팟 번호 배지 표시 */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[450px] overflow-y-auto pr-1">
               {players.map((p) => (
                 <div key={p.id} className="bg-black/40 border border-gray-900 p-2.5 rounded-xl flex items-center justify-between gap-1 shadow-inner group hover:border-gray-700 transition-colors">
@@ -606,7 +637,6 @@ export default function AdminPage() {
                     <p className="text-xs font-black text-gray-200 truncate">{p.name}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="text-[9px] text-[#f2d272] font-bold opacity-80">{p.position}</span>
-                      {/* 🟢 스팟 넘버 배지 시각화 */}
                       <span className={`text-[8px] px-1 rounded font-mono font-extrabold ${p.lineup_spot ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500'}`}>
                         {p.lineup_spot ? `Spot #${p.lineup_spot}` : '대기'}
                       </span>
