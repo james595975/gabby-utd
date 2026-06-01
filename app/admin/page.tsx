@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
+import Link from 'next/link';
 
 interface Player { 
   id: number; 
@@ -82,6 +83,7 @@ export default function AdminPage() {
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
   const [newPlayerBackNumber, setNewPlayerBackNumber] = useState<string>(''); // 등번호 상태
   const [newPlayerLineupSpot, setNewPlayerLineupSpot] = useState<string>('');
+  const [formation, setFormation] = useState('4-4-2');
 
   // 개별 선수 등번호 수정을 위한 인라인 상태 저장 매퍼 (선택 사항)
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
@@ -142,6 +144,9 @@ export default function AdminPage() {
       const { data: mData } = await supabase.from('messages').select('*').order('id', { ascending: false });
       if (mData) setMessages(mData);
 
+      const { data: fData } = await supabase.from('formations').select('current_formation').eq('id', 1).single();
+      if (fData) setFormation(fData.current_formation);
+
       const { data: matchData, error: matchError } = await supabase.from('matches').select('*').order('id', { ascending: false });
       if (matchData && !matchError) setMatches(matchData);
 
@@ -155,6 +160,16 @@ export default function AdminPage() {
   // 포메이션 스폿 매핑 핸들러
   const handleAssignSpot = async (playerId: number, spotNumber: number | null) => {
     try {
+      // 1단계: 대기 명단으로 빼는 게 아니라 특정 스폿(1~11)에 선수를 배치하는 경우
+      if (spotNumber !== null) {
+        // 원래 그 전술 자리에 있던 선수의 lineup_spot을 null(대기 명단)로 먼저 비워줍니다.
+        await supabase
+          .from('players')
+          .update({ lineup_spot: null })
+          .eq('lineup_spot', spotNumber);
+      }
+
+      // 2단계: 선택한 선수를 원하는 전술 자리에 최종적으로 업데이트합니다.
       const { error } = await supabase
         .from('players')
         .update({ lineup_spot: spotNumber })
@@ -163,12 +178,29 @@ export default function AdminPage() {
       if (error) {
         alert('라인업 지정 실패: ' + error.message);
       } else {
-        fetchData();
+        fetchData(); // UI 실시간 갱신
       }
     } catch (err) {
       console.error(err);
     }
   };
+  const handleUpdateFormation = async (selectedFormation: string) => {
+  try {
+    const { error } = await supabase
+      .from('formations')
+      .update({ current_formation: selectedFormation, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+
+    if (error) {
+      alert('포메이션 변경 실패: ' + error.message);
+    } else {
+      setFormation(selectedFormation);
+      alert(`포메이션이 ${selectedFormation}으로 변경되었습니다! ⚽`);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   // 🔢 등번호 인라인 수정용 핸들러 추가
   const handleUpdateBackNumber = async (playerId: number, backNumber: number | null) => {
@@ -423,6 +455,29 @@ export default function AdminPage() {
             로그아웃
           </button>
         </div>
+        <div className="bg-gradient-to-r from-[#070b08] via-[#0a0a0a] to-[#111] border border-green-900/40 p-5 sm:p-6 rounded-3xl shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden group">
+        {/* 배경에 은은한 녹색 불빛 효과 (선택사항) */}
+        <div className="absolute -right-10 -top-10 w-32 h-32 bg-green-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-green-500/20 transition-all duration-500" />
+        
+        <div className="space-y-1 z-10">
+          <span className="text-[10px] text-green-400 font-mono font-bold flex items-center gap-1.5 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Live Tactics Manager
+          </span>
+          <h3 className="text-base font-black text-white flex items-center gap-1.5">
+            ⚽ 실시간 선발 라인업 및 포메이션 제어 센터
+          </h3>
+          <p className="text-xs text-gray-400 leading-relaxed max-w-xl">
+            선수들의 경기장 스폿 배치를 실시간으로 수정하고 중복 배정을 방지합니다. 저장 시 메인 홈 화면의 잔디구장에 즉시 반영됩니다.
+          </p>
+        </div>
+        
+        <Link
+          href="./admin/lineup" // 💡 만약 app/lineup/page.tsx 경로라면 '/lineup'으로 변경해주세요!
+          className="bg-green-600 hover:bg-green-500 text-white font-black text-xs px-5 py-3.5 rounded-xl shadow-[0_0_20px_rgba(34,197,94,0.2)] transition-all text-center sm:min-w-[160px] flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-[0.98] z-10"
+        >
+          전술 관리판 열기 ➔
+        </Link>
+      </div>
 
         {/* 🗂️ 메뉴 제어 탭바 */}
         <div className="flex gap-1.5 bg-black/40 p-1.5 rounded-xl border border-gray-900 overflow-x-auto text-xs font-bold scrollbar-hide">
@@ -434,9 +489,6 @@ export default function AdminPage() {
           </button>
           <button type="button" onClick={() => setActiveTab('players')} className={`px-3.5 py-2 rounded-lg transition-all flex-shrink-0 ${activeTab === 'players' ? 'bg-[#f2d272] text-black font-black shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
             👥 선수단/등번호 관리
-          </button>
-          <button type="button" onClick={() => setActiveTab('lineup')} className={`px-4 py-2 rounded-lg transition-all flex-shrink-0 flex items-center gap-1 ${activeTab === 'lineup' ? 'bg-green-600 text-white font-black shadow-[0_0_15px_rgba(22,163,74,0.4)]' : 'bg-green-950/30 text-green-400 border border-green-900/40 hover:bg-green-900/20'}`}>
-            ⚽ 선발 라인업 설정 ➔
           </button>
           <button type="button" onClick={() => setActiveTab('messages')} className={`px-3.5 py-2 rounded-lg transition-all flex-shrink-0 ${activeTab === 'messages' ? 'bg-[#f2d272] text-black font-black shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
             ✉️ 접수된 문의
@@ -736,88 +788,6 @@ export default function AdminPage() {
             </div>
           </section>
         )}
-
-        {/* [⚽ 라인업 및 포메이션 배치 탭] */}
-        {activeTab === 'lineup' && (
-          <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-5 backdrop-blur-sm">
-            <div>
-              <span className="text-[10px] font-mono font-bold text-green-400 uppercase tracking-widest">TACTICS MANAGER</span>
-              <h2 className="text-base sm:text-lg font-black text-white mt-0.5">⚽ 금주 선발 라인업 및 전술 포메이션 변경</h2>
-              <p className="text-[11px] text-gray-500">지정한 스폿 스쿼드는 메인 홈 화면의 녹색 잔디구장 전술판 위치와 실시간으로 연동됩니다.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 스폿 배치 가이드 현황 */}
-              <div className="bg-black/30 border border-gray-900 rounded-xl p-4 space-y-2">
-                <h3 className="text-xs font-black text-green-400 uppercase tracking-wide mb-2">🛡️ 포메이션 필드 스폿 점유 현황</h3>
-                <div className="text-xs space-y-1.5 font-medium max-h-[380px] overflow-y-auto pr-1">
-                  {[
-                    { id: 1, role: 'Spot #1 (GK - 골키퍼)' },
-                    { id: 2, role: 'Spot #2 (LB - 왼쪽 수비)' },
-                    { id: 3, role: 'Spot #3 (LCB - 센터백)' },
-                    { id: 4, role: 'Spot #4 (RCB - 센터백)' },
-                    { id: 5, role: 'Spot #5 (RB - 오른쪽 수비)' },
-                    { id: 6, role: 'Spot #6 (LCM - 왼쪽 중원)' },
-                    { id: 7, role: 'Spot #7 (CM - 중앙 미드필더)' },
-                    { id: 8, role: 'Spot #8 (RCM - 오른쪽 중원)' },
-                    { id: 9, role: 'Spot #9 (LW - 왼쪽 포워드)' },
-                    { id: 10, role: 'Spot #10 (ST - 스트라이커)' },
-                    { id: 11, role: 'Spot #11 (RW - 오른쪽 포워드)' }
-                  ].map((spot) => {
-                    const matchedPlayer = players.find((pl) => pl.lineup_spot === spot.id);
-                    return (
-                      <div key={spot.id} className="flex justify-between items-center bg-black/60 p-2.5 rounded-xl border border-gray-900">
-                        <span className="text-green-500 font-bold font-mono text-[11px]">{spot.role}</span>
-                        <span className="text-gray-200 font-bold text-xs">
-                          {matchedPlayer ? `🟢 [No.${matchedPlayer.back_number ?? '?'}] ${matchedPlayer.name}` : '❌ 공석 (미지정)'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 선수별 실시간 드롭다운 변경 단락 */}
-              <div className="bg-black/30 border border-gray-900 rounded-xl p-4 space-y-2">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wide mb-2">🏃 선수별 전술 스팟 지정 (등번호 순 순치)</h3>
-                <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                  {players.map((player) => (
-                    <div key={player.id} className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-gray-950 text-xs">
-                      <div className="truncate mr-2">
-                        <span className="font-bold text-gray-200 block truncate">
-                          [{player.back_number !== null && player.back_number !== undefined ? `No.${player.back_number}` : '번호없음'}] {player.name}
-                        </span>
-                        <span className="text-[10px] text-gray-500">{player.position}</span>
-                      </div>
-                      <select
-                        value={player.lineup_spot || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          handleAssignSpot(player.id, val === '' ? null : Number(val));
-                        }}
-                        className="bg-black border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-green-500 cursor-pointer font-bold [&>option]:bg-[#111]"
-                      >
-                        <option value="">대기 명단 (배치 안 함)</option>
-                        <option value="1">Spot #1 (GK)</option>
-                        <option value="2">Spot #2 (LB)</option>
-                        <option value="3">Spot #3 (LCB)</option>
-                        <option value="4">Spot #4 (RCB)</option>
-                        <option value="5">Spot #5 (RB)</option>
-                        <option value="6">Spot #6 (LCM)</option>
-                        <option value="7">Spot #7 (CM)</option>
-                        <option value="8">Spot #8 (RCM)</option>
-                        <option value="9">Spot #9 (LW)</option>
-                        <option value="10">Spot #10 (ST)</option>
-                        <option value="11">Spot #11 (RW)</option>
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* [4구역] 문의 메세지 내역 */}
         {activeTab === 'messages' && (
           <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-4 backdrop-blur-sm">

@@ -39,27 +39,101 @@ interface NewsItem {
 }
 
 // 🟢 전술판 위의 선수 마커 컴포넌트
-function PlayerDot({ number, name, isGK = false }: { number: string, name: string, isGK?: boolean }) {
+interface PlayerDotProps {
+  number: string;
+  name: string;
+  isGK?: boolean;
+}
+
+function PlayerDot({ number, name, isGK = false }: PlayerDotProps) {
   return (
-    <div className="flex flex-col items-center gap-1 group cursor-pointer z-10">
-      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black shadow-md border 
-        ${isGK 
-          ? 'bg-[#f2d272] text-black border-[#e0be5a] shadow-[0_0_10px_rgba(242,210,114,0.4)]' 
-          : 'bg-white text-black border-gray-300 group-hover:bg-green-500 group-hover:text-white group-hover:border-green-400 transition-colors'
+    <div className="flex flex-col items-center justify-center space-y-1.5 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
+      {/* 🔴 등번호가 들어가는 원형 마커 (크기 확대: w-8 h-8 -> w-10 h-10) */}
+      <div 
+        className={`w-10 h-10 rounded-full flex items-center justify-center font-mono font-black border-2 transition-transform duration-300 hover:scale-110 ${
+          isGK 
+            ? 'bg-amber-500 text-black border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)]' 
+            : 'bg-green-500 text-white border-green-300 shadow-[0_0_15px_rgba(34,197,94,0.5)]'
         }`}
       >
-        {number}
+        {/* 🔢 등번호 글자 크기 확대 (text-xs -> text-sm ~ base) */}
+        <span className="text-sm sm:text-base tracking-tighter">
+          {number}
+        </span>
       </div>
-      <span className="text-[9px] sm:text-[10px] font-bold text-gray-300 group-hover:text-white transition-colors bg-black/40 px-1 rounded whitespace-nowrap">
-        {name}
-      </span>
+
+      {/* 🏃 선수 이름 레이블 박스 (폰트 크기 및 패딩 대폭 확대) */}
+      {name && (
+        <div className="bg-black/85 border border-gray-700/60 px-2.5 py-1 rounded-md max-w-[90px] sm:max-w-[120px] truncate text-center backdrop-blur-sm">
+          {/* 🔤 이름 글자 크기 확대 (text-[10px] -> text-xs ~ sm) */}
+          <span className="block text-xs sm:text-sm font-black text-gray-100 tracking-tight whitespace-nowrap truncate">
+            {name}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
+const FORMATION_STYLES: Record<string, Record<number, { top: string; left: string }>> = {
+  '4-4-2': {
+    1: { top: '88%', left: '50%' },   // GK
+    2: { top: '70%', left: '15%' },   // LB
+    3: { top: '73%', left: '38%' },   // LCB
+    4: { top: '73%', left: '62%' },   // RCB
+    5: { top: '70%', left: '85%' },   // RB
+    6: { top: '48%', left: '15%' },   // LM
+    7: { top: '50%', left: '38%' },   // LCM
+    8: { top: '50%', left: '62%' },   // RCM
+    9: { top: '48%', left: '85%' },   // RM
+    10: { top: '22%', left: '35%' },  // LS
+    11: { top: '22%', left: '65%' },  // RS
+  },
+  '5-3-2': {
+    1: { top: '88%', left: '50%' },   // GK
+    2: { top: '65%', left: '12%' },   // LWB
+    3: { top: '73%', left: '30%' },   // LCB
+    9: { top: '75%', left: '50%' },   // CB (5백 중심 수비)
+    4: { top: '73%', left: '70%' },   // RCB
+    5: { top: '65%', left: '88%' },   // RWB
+    6: { top: '46%', left: '28%' },   // LCM
+    7: { top: '48%', left: '50%' },   // CM
+    8: { top: '46%', left: '72%' },   // RCM
+    10: { top: '22%', left: '35%' },  // LS
+    11: { top: '22%', left: '65%' },  // RS
+  },
+  '4-3-3': {
+    1: { top: '88%', left: '50%' },   // GK
+    2: { top: '70%', left: '15%' },   // LB
+    3: { top: '73%', left: '36%' },   // LCB
+    4: { top: '73%', left: '64%' },   // RCB
+    5: { top: '70%', left: '85%' },   // RB
+    6: { top: '50%', left: '25%' },   // LCM
+    7: { top: '53%', left: '50%' },   // CM
+    8: { top: '50%', left: '75%' },   // RCM
+    9: { top: '24%', left: '18%' },   // LW
+    10: { top: '20%', left: '50%' },  // ST
+    11: { top: '24%', left: '82%' },  // RW
+  },
+  '3-5-2': {
+    1: { top: '88%', left: '50%' },   // GK
+    2: { top: '73%', left: '25%' },   // LCB
+    3: { top: '75%', left: '50%' },   // CB
+    4: { top: '73%', left: '75%' },   // RCB
+    9: { top: '50%', left: '12%' },   // LM
+    6: { top: '52%', left: '34%' },   // LCM
+    7: { top: '56%', left: '50%' },   // CDM
+    8: { top: '52%', left: '66%' },   // RCM
+    5: { top: '50%', left: '88%' },   // RM
+    10: { top: '22%', left: '35%' },  // LS
+    11: { top: '22%', left: '65%' },  // RS
+  }
+};
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'inquiry' | 'join'>('inquiry');
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [formation, setFormation] = useState<string>('4-3-3');
+  const [players, setPlayers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
 
@@ -120,10 +194,24 @@ export default function Home() {
         setMatchLoading(false);
       }
     };
-
+    const fetchFormation = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('formations')
+          .select('current_formation')
+          .eq('id', 1)
+          .single();
+        if (data && !error) {
+          setFormation(data.current_formation);
+        }
+      } catch (e) {
+        console.error("Formation fetch error:", e);
+      }
+    };
     fetchPlayers();
     fetchNews();
     fetchMatchData();
+    fetchFormation();
   }, []);
 
   const getPositionStyles = (pos: string) => {
@@ -244,13 +332,20 @@ export default function Home() {
     }
   };
 
-  const getSpotPlayer = (spotNum: number, defaultRole: string) => {
-    const matched = players.find(p => p.lineup_spot === spotNum);
+  const getSpotPlayer = (spotId: number, defaultLabel: string) => {
+  // 전체 players 배열 중 lineup_spot이 현재 잔디구장 스폿 ID와 일치하는 선수를 찾습니다.
+  const found = players.find((p) => p.lineup_spot === spotId);
+  
+  if (found) {
     return {
-      number: matched?.back_number !== undefined && matched?.back_number !== null ? String(matched.back_number) : '-',
-      name: matched?.name || defaultRole
+      number: found.back_number?.toString() || '?',
+      name: found.name,
     };
-  };
+  }
+  
+  // 만약 해당 스폿에 배치된 선수가 없다면 공석 처리합니다.
+  return { number: '-', name: defaultLabel };
+};
 
   const displayHomeTeam = match?.home_team || 'Gabby UTD';
   const displayAwayTeam = match?.away_team || '상대 팀';
@@ -267,7 +362,7 @@ export default function Home() {
     <div className="bg-[#050505] text-white min-h-screen font-sans antialiased selection:bg-[#ff00ff]/30 selection:text-white overflow-x-hidden">
       
       {/* 📌 [고정 및 스캔강화] 최상단 고정 네비게이션 바 */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-lg transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-lg transition-all duration-300">
         <div className="max-w-5xl mx-auto flex justify-between items-center gap-4">
           {/* 구단 로고 및 이름 */}
           <div 
@@ -289,7 +384,7 @@ export default function Home() {
             <span className="text-gray-400 text-[10px] tracking-wide font-medium whitespace-nowrap">Gabby UTD Sponsored by</span>
             <span className="w-px h-3 bg-white/10"></span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[#f2d272] font-black tracking-wider uppercase">YOUR BRAND HERE</span>
+              <span className="text-[#f2d272] font-black tracking-wider uppercase">Your Brand Here</span>
             </div>
           </div>
 
@@ -420,36 +515,45 @@ export default function Home() {
             <span className="text-[10px] text-green-400 font-mono font-bold block uppercase tracking-widest">Starting Lineup</span>
             <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">⚽ 금주 선발 라인업</h2>
           </div>
-          <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex flex-col items-center py-12">
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(34, 197, 94, 0.08) 30px, rgba(34, 197, 94, 0.08) 60px)' }} />
-            <div className="absolute top-1/2 left-0 w-full h-[2px] bg-green-900/40" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-green-900/40 rounded-full" />
-            <div className="relative z-10 w-full max-w-sm flex flex-col gap-10">
-              {/* 공격수 라인 (FW: 9, 10, 11) */}
-              <div className="flex justify-around">
-                <PlayerDot number={getSpotPlayer(9, 'LW').number} name={getSpotPlayer(9, 'LW').name} />
-                <PlayerDot number={getSpotPlayer(10, 'ST').number} name={getSpotPlayer(10, 'ST').name} />
-                <PlayerDot number={getSpotPlayer(11, 'RW').number} name={getSpotPlayer(11, 'RW').name} />
+          {(() => {
+            const currentCoords = FORMATION_STYLES[formation] || FORMATION_STYLES['4-4-2'];
+
+            return (
+              <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative flex flex-col items-center justify-center min-h-[480px] sm:min-h-[580px] w-full overflow-hidden py-12">
+                
+                {/* 🏃 11개 스폿 반복 루프 */}
+                {[...Array(11)].map((_, index) => {
+                  const spotId = index + 1;
+                  
+                  // 💡 이제 동일한 컴포넌트 스코프 내부에 선언되었으므로 정상 실행됩니다!
+                  const playerData = getSpotPlayer(spotId, `Spot #${spotId}`);
+                  
+                  const coords = currentCoords[spotId] || { top: '50%', left: '50%' };
+                  const isGK = spotId === 1;
+                  const hasPlayer = playerData.number !== '-';
+
+                  return (
+                    <div
+                      key={spotId}
+                      style={{
+                        position: 'absolute',
+                        top: coords.top,
+                        left: coords.left,
+                        transform: 'translate(-50%, -50%)',
+                        transition: 'all 0.7s cubic-bezier(0.25, 1, 0.5, 1)'
+                      }}
+                    >
+                      <PlayerDot 
+                        number={playerData.number} 
+                        name={hasPlayer ? playerData.name : ''} 
+                        isGK={isGK} 
+                      />
+                    </div>
+                  );
+                })}
               </div>
-              {/* 미드필더 라인 (MF: 6, 7, 8) */}
-              <div className="flex justify-between px-4">
-                <PlayerDot number={getSpotPlayer(6, 'LCM').number} name={getSpotPlayer(6, 'LCM').name} />
-                <PlayerDot number={getSpotPlayer(7, 'CM').number} name={getSpotPlayer(7, 'CM').name} />
-                <PlayerDot number={getSpotPlayer(8, 'RCM').number} name={getSpotPlayer(8, 'RCM').name} />
-              </div>
-              {/* 수비수 라인 (DF: 2, 3, 4, 5) */}
-              <div className="flex justify-between">
-                <PlayerDot number={getSpotPlayer(2, 'LB').number} name={getSpotPlayer(2, 'LB').name} />
-                <PlayerDot number={getSpotPlayer(3, 'LCB').number} name={getSpotPlayer(3, 'LCB').name} />
-                <PlayerDot number={getSpotPlayer(4, 'RCB').number} name={getSpotPlayer(4, 'RCB').name} />
-                <PlayerDot number={getSpotPlayer(5, 'RB').number} name={getSpotPlayer(5, 'RB').name} />
-              </div>
-              {/* 골키퍼 (GK: 1) */}
-              <div className="flex justify-center mt-2">
-                <PlayerDot number={getSpotPlayer(1, 'GK').number} name={getSpotPlayer(1, 'GK').name} isGK={true} />
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       </section>
 

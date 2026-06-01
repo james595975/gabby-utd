@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
-/* Next.js 기본 변수와 시스템 다크모드 강제 설정을 제거하고 
-  계비 UTD의 시그니처 다크 버건디 컬러를 기본 배경으로 지정합니다.
-*/
-body {
-  background-color: #4a1525;
+/* html 태그까지 함께 묶어서 홈화면 배경색(#050505)과 일치시킵니다. */
+html, body {
+  background-color: #050505 !important;
   color: #ffffff;
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
+  
+  /* 💡 모바일/트랙패드에서 스크롤이 쫀득하게 튕기는 현상 자체를 막으려면 아래 추가 */
+  overscroll-behavior-y: none;
 }
