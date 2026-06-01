@@ -7,6 +7,7 @@ interface Player {
   id: number; 
   name: string; 
   position: string; 
+  back_number?: number | null; // 🔢 등번호 컬럼 추가
   lineup_spot?: number | null; 
 }
 
@@ -76,10 +77,14 @@ export default function AdminPage() {
   const [addMatchResult, setAddMatchResult] = useState('승리'); 
   const [addMatchDate, setAddMatchDate] = useState('');
 
-  // 신규 선수 등록 관련 상태
+  // 선수 등록 및 수정 관련 상태 (등번호 추가 🔢)
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
+  const [newPlayerBackNumber, setNewPlayerBackNumber] = useState<string>(''); // 등번호 상태
   const [newPlayerLineupSpot, setNewPlayerLineupSpot] = useState<string>('');
+
+  // 개별 선수 등번호 수정을 위한 인라인 상태 저장 매퍼 (선택 사항)
+  const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
 
   // 구단 소식 등록 및 수정 관련 상태
   const [editingNewsId, setEditingNewsId] = useState<number | null>(null);
@@ -126,7 +131,12 @@ export default function AdminPage() {
   const fetchData = async () => {
     try {
       setIsLoading(false);
-      const { data: pData } = await supabase.from('players').select('*').order('id', { ascending: true });
+      
+      // 🔢 선수단 로드 시 등번호(back_number) 오름차순 정렬, 번호가 없으면 뒤로 배치
+      const { data: pData } = await supabase
+        .from('players')
+        .select('*')
+        .order('back_number', { ascending: true, nullsFirst: false });
       if (pData) setPlayers(pData);
 
       const { data: mData } = await supabase.from('messages').select('*').order('id', { ascending: false });
@@ -142,6 +152,7 @@ export default function AdminPage() {
     }
   };
 
+  // 포메이션 스폿 매핑 핸들러
   const handleAssignSpot = async (playerId: number, spotNumber: number | null) => {
     try {
       const { error } = await supabase
@@ -151,6 +162,24 @@ export default function AdminPage() {
 
       if (error) {
         alert('라인업 지정 실패: ' + error.message);
+      } else {
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 🔢 등번호 인라인 수정용 핸들러 추가
+  const handleUpdateBackNumber = async (playerId: number, backNumber: number | null) => {
+    try {
+      const { error } = await supabase
+        .from('players')
+        .update({ back_number: backNumber })
+        .eq('id', playerId);
+
+      if (error) {
+        alert('등번호 수정 실패: ' + error.message);
       } else {
         fetchData();
       }
@@ -185,7 +214,7 @@ export default function AdminPage() {
       if (error) {
         alert("경기 등록 실패: " + error.message);
       } else {
-        alert("새로운 경기 결과가 성공적으로 등록되었습니다! ⚽");
+        alert("경기 결과가 성공적으로 등록되었습니다! ⚽");
         setAddHomeTeam(DEFAULT_HOME_TEAM);
         setAddHomeLogo(DEFAULT_HOME_LOGO); 
         setAddAwayTeam(DEFAULT_AWAY_TEAM); 
@@ -240,6 +269,7 @@ export default function AdminPage() {
     if (!error) fetchData();
   };
 
+  // 👤 선수 등록 프로세스 (등번호 매핑 포함)
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return alert('선수 이름을 입력해 주세요.');
@@ -249,11 +279,13 @@ export default function AdminPage() {
       .insert([{ 
         name: newPlayerName.trim(), 
         position: newPlayerPosition,
+        back_number: newPlayerBackNumber ? Number(newPlayerBackNumber) : null, // 등번호 추가
         lineup_spot: newPlayerLineupSpot ? Number(newPlayerLineupSpot) : null 
       }]);
 
     if (!error) {
       setNewPlayerName('');
+      setNewPlayerBackNumber('');
       setNewPlayerLineupSpot('');
       fetchData();
     } else {
@@ -382,7 +414,6 @@ export default function AdminPage() {
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[#3b1028]/20 rounded-full blur-[120px] pointer-events-none z-0" />
 
       <div className="max-w-4xl mx-auto space-y-6 relative z-10">
-        
         {/* 상단 헤더 로우 */}
         <div className="flex justify-between items-center border-b border-gray-800/60 pb-4">
           <h1 className="text-xl sm:text-2xl font-black text-[#f2d272] tracking-wide flex items-center gap-2">
@@ -402,7 +433,7 @@ export default function AdminPage() {
             📰 구단소식 포스팅
           </button>
           <button type="button" onClick={() => setActiveTab('players')} className={`px-3.5 py-2 rounded-lg transition-all flex-shrink-0 ${activeTab === 'players' ? 'bg-[#f2d272] text-black font-black shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            👥 선수단 등록
+            👥 선수단/등번호 관리
           </button>
           <button type="button" onClick={() => setActiveTab('lineup')} className={`px-4 py-2 rounded-lg transition-all flex-shrink-0 flex items-center gap-1 ${activeTab === 'lineup' ? 'bg-green-600 text-white font-black shadow-[0_0_15px_rgba(22,163,74,0.4)]' : 'bg-green-950/30 text-green-400 border border-green-900/40 hover:bg-green-900/20'}`}>
             ⚽ 선발 라인업 설정 ➔
@@ -522,7 +553,7 @@ export default function AdminPage() {
           </section>
         )}
 
-        {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 (대표 이미지 란 완벽 복구 🖼️) */}
+        {/* [2구역] 구단 소식 게시판 포스팅 및 수정 관리 */}
         {activeTab === 'news' && (
           <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-5 backdrop-blur-sm">
             <h2 className="text-base sm:text-lg font-black flex items-center gap-2 text-gray-200">
@@ -544,7 +575,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 📷 [완벽 복구] 대표 이미지 링크 및 외부 바로가기 주소 링크란 추가 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] text-gray-400 mb-1">🖼️ 대표 이미지 링크 주소 (선택)</label>
@@ -580,8 +610,8 @@ export default function AdminPage() {
                 news.map((item) => (
                   <div key={item.id} className="border border-gray-900 p-3.5 rounded-xl bg-black/40 flex justify-between items-center gap-4">
                     <div className="truncate flex items-center gap-3">
-                      {/* 이미지 주소가 있을 경우 썸네일 노출 */}
                       {item.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={item.image_url} alt="thumbnail" className="w-10 h-10 rounded-lg object-cover bg-gray-950 flex-shrink-0 border border-gray-800" />
                       )}
                       <div className="truncate">
@@ -607,15 +637,21 @@ export default function AdminPage() {
           </section>
         )}
 
-        {/* [3구역] 선수 명단 관리 */}
+        {/* [3구역] 선수 명단 및 등번호 관리 🔢 */}
         {activeTab === 'players' && (
           <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl backdrop-blur-sm">
-            <h2 className="text-base sm:text-lg font-black mb-4 text-gray-200">👥 구단 선수 명단 관리 <span className="text-xs text-gray-500 font-mono font-normal">({players.length}명)</span></h2>
+            <h2 className="text-base sm:text-lg font-black mb-4 text-gray-200">👥 구단 선수 및 등번호 관리 <span className="text-xs text-gray-500 font-mono font-normal">({players.length}명 - 등번호순 정렬)</span></h2>
             
-            <form onSubmit={handleAddPlayer} className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 mb-4 bg-black/30 p-3 rounded-xl border border-gray-900 items-end">
-              <div>
-                <label className="block text-[10px] text-gray-400 font-bold mb-1">선수 이름 *</label>
-                <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="이름 입력" className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272] font-bold" />
+            <form onSubmit={handleAddPlayer} className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 mb-4 bg-black/30 p-3 rounded-xl border border-gray-900 items-end">
+              <div className="sm:col-span-2 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] text-gray-400 font-bold mb-1">선수 이름 *</label>
+                  <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="이름" className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272] font-bold" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-[#f2d272] font-bold mb-1">🔢 등번호 지정</label>
+                  <input type="number" value={newPlayerBackNumber} onChange={(e) => setNewPlayerBackNumber(e.target.value)} placeholder="예: 10" min="0" max="99" className="w-full bg-black/50 border border-gray-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#f2d272] font-mono font-bold" />
+                </div>
               </div>
               <div>
                 <label className="block text-[10px] text-gray-400 font-bold mb-1">포지션 역할</label>
@@ -627,66 +663,113 @@ export default function AdminPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] text-green-400 font-bold mb-1">초기 전술 스팟 지정</label>
+                <label className="block text-[10px] text-green-400 font-bold mb-1">초기 전술 스팟</label>
                 <select value={newPlayerLineupSpot} onChange={(e) => setNewPlayerLineupSpot(e.target.value)} className="w-full bg-black/50 border border-green-900/50 focus:border-green-500 rounded-xl p-2.5 text-xs text-gray-300 focus:outline-none cursor-pointer font-bold">
-                  <option value="">대기 명단 (배치 안 함)</option>
+                  <option value="">대기 명단 (제외)</option>
                   <option value="1">Spot #1 (GK)</option>
-                  <option value="2">Spot #2 (DF)</option>
-                  <option value="3">Spot #3 (DF)</option>
-                  <option value="4">Spot #4 (DF)</option>
-                  <option value="5">Spot #5 (DF)</option>
-                  <option value="6">Spot #6 (MF)</option>
-                  <option value="7">Spot #7 (MF)</option>
-                  <option value="8">Spot #8 (MF)</option>
-                  <option value="9">Spot #9 (FW)</option>
-                  <option value="10">Spot #10 (FW)</option>
-                  <option value="11">Spot #11 (FW)</option>
+                  <option value="2">Spot #2 (LB)</option>
+                  <option value="3">Spot #3 (LCB)</option>
+                  <option value="4">Spot #4 (RCB)</option>
+                  <option value="5">Spot #5 (RB)</option>
+                  <option value="6">Spot #6 (LCM)</option>
+                  <option value="7">Spot #7 (CM)</option>
+                  <option value="8">Spot #8 (RCM)</option>
+                  <option value="9">Spot #9 (LW)</option>
+                  <option value="10">Spot #10 (ST)</option>
+                  <option value="11">Spot #11 (RW)</option>
                 </select>
               </div>
               <button type="submit" className="bg-[#f2d272] text-black font-black h-[38px] rounded-xl text-xs hover:bg-[#e0be5a] shadow transition-all whitespace-nowrap w-full">
-                ➕ 신규 선수 등록
+                ➕ 선수 등록
               </button>
             </form>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[450px] overflow-y-auto pr-1">
+            {/* 선수 리스트에서 인라인으로 등번호 상시 변경 가능 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-[450px] overflow-y-auto pr-1">
               {players.map((p) => (
-                <div key={p.id} className="bg-black/40 border border-gray-900 p-2.5 rounded-xl flex items-center justify-between gap-1 shadow-inner group hover:border-gray-700 transition-colors">
-                  <div className="truncate">
-                    <p className="text-xs font-black text-gray-200 truncate">{p.name}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[9px] text-[#f2d272] font-bold opacity-80">{p.position}</span>
+                <div key={p.id} className="bg-black/40 border border-gray-900 p-3 rounded-xl flex items-center justify-between gap-2 shadow-inner group hover:border-gray-700 transition-colors">
+                  <div className="truncate flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-[#f2d272] bg-white/5 px-1.5 py-0.5 rounded min-w-[22px] text-center">
+                        {p.back_number !== null && p.back_number !== undefined ? p.back_number : '-'}
+                      </span>
+                      <p className="text-xs font-black text-gray-200 truncate">{p.name}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="text-[9px] text-gray-400 font-bold">{p.position}</span>
                       <span className={`text-[8px] px-1 rounded font-mono font-extrabold ${p.lineup_spot ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-gray-800 text-gray-500'}`}>
-                        {p.lineup_spot ? `Spot #${p.lineup_spot}` : '대기'}
+                        {p.lineup_spot ? `Spot #${p.lineup_spot}` : '대기명단'}
                       </span>
                     </div>
                   </div>
-                  <button type="button" onClick={() => handleDeletePlayer(p.id, p.name)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2 py-1 rounded border border-red-500/10 font-bold transition-colors flex-shrink-0">제외</button>
+                  
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {editingPlayerId === p.id ? (
+                      <input 
+                        type="number" 
+                        defaultValue={p.back_number !== null && p.back_number !== undefined ? p.back_number : ''} 
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          handleUpdateBackNumber(p.id, val === '' ? null : Number(val));
+                          setEditingPlayerId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = (e.target as HTMLInputElement).value;
+                            handleUpdateBackNumber(p.id, val === '' ? null : Number(val));
+                            setEditingPlayerId(null);
+                          }
+                        }}
+                        autoFocus
+                        placeholder="번"
+                        className="w-12 bg-black border border-[#f2d272] text-white p-1 text-center rounded text-xs font-mono font-bold focus:outline-none"
+                      />
+                    ) : (
+                      <button type="button" onClick={() => setEditingPlayerId(p.id)} className="text-[10px] text-gray-400 bg-gray-900 hover:bg-gray-800 border border-gray-800 px-2 py-1 rounded font-bold transition-all">
+                        번호수정
+                      </button>
+                    )}
+                    <button type="button" onClick={() => handleDeletePlayer(p.id, p.name)} className="text-[10px] text-red-400 bg-red-950/20 hover:bg-red-900/40 px-2 py-1 rounded border border-red-500/10 font-bold transition-colors">제외</button>
+                  </div>
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* [⚽ 라인업 설정 탭] */}
+        {/* [⚽ 라인업 및 포메이션 배치 탭] */}
         {activeTab === 'lineup' && (
           <section className="bg-[#0a0a0a] p-5 sm:p-6 rounded-2xl border border-gray-800/60 shadow-xl space-y-5 backdrop-blur-sm">
             <div>
               <span className="text-[10px] font-mono font-bold text-green-400 uppercase tracking-widest">TACTICS MANAGER</span>
-              <h2 className="text-base sm:text-lg font-black text-white mt-0.5">⚽ 금주 선발 라인업 설정</h2>
-              <p className="text-[11px] text-gray-500">여기서 변경하거나 선수 관리 탭에서 변경한 데이터는 전술 판넬에 실시간 저장됩니다.</p>
+              <h2 className="text-base sm:text-lg font-black text-white mt-0.5">⚽ 금주 선발 라인업 및 전술 포메이션 변경</h2>
+              <p className="text-[11px] text-gray-500">지정한 스폿 스쿼드는 메인 홈 화면의 녹색 잔디구장 전술판 위치와 실시간으로 연동됩니다.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 스폿 배치 가이드 현황 */}
               <div className="bg-black/30 border border-gray-900 rounded-xl p-4 space-y-2">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wide mb-2">🛡️ 포지션별 배치 상태</h3>
+                <h3 className="text-xs font-black text-green-400 uppercase tracking-wide mb-2">🛡️ 포메이션 필드 스폿 점유 현황</h3>
                 <div className="text-xs space-y-1.5 font-medium max-h-[380px] overflow-y-auto pr-1">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((spot) => {
-                    const matchedPlayer = players.find((pl) => pl.lineup_spot === spot);
+                  {[
+                    { id: 1, role: 'Spot #1 (GK - 골키퍼)' },
+                    { id: 2, role: 'Spot #2 (LB - 왼쪽 수비)' },
+                    { id: 3, role: 'Spot #3 (LCB - 센터백)' },
+                    { id: 4, role: 'Spot #4 (RCB - 센터백)' },
+                    { id: 5, role: 'Spot #5 (RB - 오른쪽 수비)' },
+                    { id: 6, role: 'Spot #6 (LCM - 왼쪽 중원)' },
+                    { id: 7, role: 'Spot #7 (CM - 중앙 미드필더)' },
+                    { id: 8, role: 'Spot #8 (RCM - 오른쪽 중원)' },
+                    { id: 9, role: 'Spot #9 (LW - 왼쪽 포워드)' },
+                    { id: 10, role: 'Spot #10 (ST - 스트라이커)' },
+                    { id: 11, role: 'Spot #11 (RW - 오른쪽 포워드)' }
+                  ].map((spot) => {
+                    const matchedPlayer = players.find((pl) => pl.lineup_spot === spot.id);
                     return (
-                      <div key={spot} className="flex justify-between items-center bg-black/60 p-2.5 rounded-xl border border-gray-900">
-                        <span className="text-green-400 font-bold font-mono">Spot #{spot} {spot === 1 ? '(GK)' : ''}</span>
-                        <span className="text-gray-200 font-bold">
-                          {matchedPlayer ? `🟢 ${matchedPlayer.name} (${matchedPlayer.position})` : '❌ 미배치 (공석)'}
+                      <div key={spot.id} className="flex justify-between items-center bg-black/60 p-2.5 rounded-xl border border-gray-900">
+                        <span className="text-green-500 font-bold font-mono text-[11px]">{spot.role}</span>
+                        <span className="text-gray-200 font-bold text-xs">
+                          {matchedPlayer ? `🟢 [No.${matchedPlayer.back_number ?? '?'}] ${matchedPlayer.name}` : '❌ 공석 (미지정)'}
                         </span>
                       </div>
                     );
@@ -694,36 +777,38 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* 선수별 실시간 드롭다운 변경 단락 */}
               <div className="bg-black/30 border border-gray-900 rounded-xl p-4 space-y-2">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wide mb-2">🏃 선수별 전술 스팟 지정</h3>
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wide mb-2">🏃 선수별 전술 스팟 지정 (등번호 순 순치)</h3>
                 <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
                   {players.map((player) => (
                     <div key={player.id} className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-gray-950 text-xs">
                       <div className="truncate mr-2">
-                        <span className="font-bold text-gray-200 block truncate">{player.name}</span>
+                        <span className="font-bold text-gray-200 block truncate">
+                          [{player.back_number !== null && player.back_number !== undefined ? `No.${player.back_number}` : '번호없음'}] {player.name}
+                        </span>
                         <span className="text-[10px] text-gray-500">{player.position}</span>
                       </div>
-                      
                       <select
                         value={player.lineup_spot || ''}
                         onChange={(e) => {
                           const val = e.target.value;
                           handleAssignSpot(player.id, val === '' ? null : Number(val));
                         }}
-                        className="bg-black border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-green-500 cursor-pointer font-bold"
+                        className="bg-black border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-green-500 cursor-pointer font-bold [&>option]:bg-[#111]"
                       >
                         <option value="">대기 명단 (배치 안 함)</option>
                         <option value="1">Spot #1 (GK)</option>
-                        <option value="2">Spot #2 (DF)</option>
-                        <option value="3">Spot #3 (DF)</option>
-                        <option value="4">Spot #4 (DF)</option>
-                        <option value="5">Spot #5 (DF)</option>
-                        <option value="6">Spot #6 (MF)</option>
-                        <option value="7">Spot #7 (MF)</option>
-                        <option value="8">Spot #8 (MF)</option>
-                        <option value="9">Spot #9 (FW)</option>
-                        <option value="10">Spot #10 (FW)</option>
-                        <option value="11">Spot #11 (FW)</option>
+                        <option value="2">Spot #2 (LB)</option>
+                        <option value="3">Spot #3 (LCB)</option>
+                        <option value="4">Spot #4 (RCB)</option>
+                        <option value="5">Spot #5 (RB)</option>
+                        <option value="6">Spot #6 (LCM)</option>
+                        <option value="7">Spot #7 (CM)</option>
+                        <option value="8">Spot #8 (RCM)</option>
+                        <option value="9">Spot #9 (LW)</option>
+                        <option value="10">Spot #10 (ST)</option>
+                        <option value="11">Spot #11 (RW)</option>
                       </select>
                     </div>
                   ))}
