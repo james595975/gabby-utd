@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// 💡 클라이언트 측 이벤트를 처리하기 위한 서브 컴포넌트 유입
+import CopyProtectionClient from "./components/CopyProtectionClient";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,10 +27,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="ko"
+      // 💎 드래그 차단을 위한 CSS 클래스 'select-none' 적용 (Tailwind)
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased select-none`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* 🔒 브라우저 단축키 및 우클릭을 차단하는 보안 컴포넌트 작동 */}
+        <CopyProtectionClient />
+        {children}
+      </body>
     </html>
   );
 }
