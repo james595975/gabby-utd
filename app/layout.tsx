@@ -4,6 +4,7 @@ import "./globals.css";
 
 // 💡 클라이언트 측 이벤트를 처리하기 위한 서브 컴포넌트 유입
 import CopyProtectionClient from "./components/CopyProtectionClient";
+import VisitLogger from "./components/VisitLogger";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {/* 🔒 브라우저 단축키 및 우클릭을 차단하는 보안 컴포넌트 작동 */}
         <CopyProtectionClient />
+        <VisitLogger />
         {children}
       </body>
     </html>
