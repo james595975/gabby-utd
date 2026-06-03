@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/utils/supabase';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 
 interface Player { 
@@ -39,8 +40,10 @@ interface NewsItem {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [matches, setMatches] = useState<MatchData[]>([]);
@@ -100,54 +103,51 @@ export default function AdminPage() {
   const [messageFilter, setMessageFilter] = useState<'all' | 'join' | 'inquiry'>('all');
 
   useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    setAddMatchDate(todayStr);
+  const todayStr = new Date().toISOString().split('T')[0];
+  setAddMatchDate(todayStr);
 
-    const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
-    if (isSavedLogin === 'true') {
+  const checkAdmin = async () => {
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        router.replace('/admin/login');
+        return;
+      }
+
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (adminError || !adminUser) {
+        await supabase.auth.signOut();
+        router.replace('/admin/login');
+        return;
+      }
+
       setIsAuthenticated(true);
-      fetchData();
-    } else {
+      await fetchData();
+    } catch (error) {
+      console.error('관리자 권한 확인 중 오류 발생:', error);
+      router.replace('/admin/login');
+    } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  try {
-    // 🔒 브라우저에서 직접 비교하지 않고, 서버 API(/api/admin)에 비밀번호 검증을 요청합니다.
-    const response = await fetch('/api/admin', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ password }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.success) {
-      // API 내부에서 HttpOnly 쿠키('admin_session')를 자동으로 구워줍니다.
-      localStorage.setItem('gb_admin_authenticated', 'true');
-      setIsAuthenticated(true);
-      fetchData();
-    } else {
-      // Rate limiting에 걸렸거나 비밀번호가 틀린 경우 서버가 보내준 메시지를 띄웁니다.
-      alert(data.message || '비밀번호가 일치하지 않습니다.');
-    }
-  } catch (error) {
-    console.error('로그인 요청 중 오류 발생:', error);
-    alert('서버와 통신 중 오류가 발생했습니다.');
-  }
-};
-
-
-  const handleLogout = () => {
-    localStorage.removeItem('gb_admin_authenticated');
-    setIsAuthenticated(false);
-    setPassword('');
   };
+
+  checkAdmin();
+}, [router, supabase]);
+
+const handleLogout = async () => {
+  await supabase.auth.signOut();
+  setIsAuthenticated(false);
+  router.replace('/admin/login');
+};
 
   const fetchData = async () => {
     try {
@@ -435,29 +435,15 @@ export default function AdminPage() {
     if (messageFilter === 'all') return true;
     return msg.type === messageFilter;
   });
-
-  if (!isAuthenticated) {
-    return (
-      <div className="bg-[#050505] min-h-screen flex items-center justify-center text-white px-4 relative overflow-hidden">
-        <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-[#1a233a]/20 rounded-full blur-[120px] pointer-events-none z-0" />
-        <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[#3b1028]/20 rounded-full blur-[120px] pointer-events-none z-0" />
-
-        <form onSubmit={handleLogin} className="bg-[#0a0a0a] p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-800/60 relative z-10 backdrop-blur-sm">
-          <h2 className="text-xl font-black mb-6 text-center text-[#f2d272] tracking-wider">구단 관리자 로그인</h2>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            placeholder="비밀번호 입력" 
-            className="w-full bg-black/50 border border-gray-800 rounded-xl p-3 text-sm mb-4 text-center text-white focus:outline-none focus:border-[#f2d272] font-mono transition-colors" 
-          />
-          <button type="submit" className="w-full bg-[#f2d272] text-black font-black py-3 rounded-xl text-sm hover:bg-[#e0be5a] active:scale-[0.98] transition-all shadow-lg">
-            입장하기
-          </button>
-        </form>
-      </div>
-    );
-  }
+  if (isLoading || !isAuthenticated) {
+  return (
+    <div className="bg-[#050505] min-h-screen flex items-center justify-center text-white px-4 relative overflow-hidden">
+      <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-[#1a233a]/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[#3b1028]/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      <p className="text-sm text-gray-400 relative z-10">관리자 권한 확인 중...</p>
+    </div>
+  );
+}
 
   return (
     <div className="bg-[#050505] min-h-screen text-white p-4 sm:p-6 pb-24 relative overflow-hidden font-sans antialiased">
