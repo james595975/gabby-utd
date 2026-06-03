@@ -33,19 +33,8 @@ export default function AdminLoginPage() {
         return;
       }
 
-      const { data: adminUser, error: adminError } = await supabase
-        .from('admin_users')
-        .select('user_id')
-        .eq('user_id', loginData.user.id)
-        .single();
-
-      if (adminError || !adminUser) {
-        await supabase.auth.signOut();
-        alert('관리자 권한이 없는 계정입니다.');
-        return;
-      }
-
-      router.replace('/admin');
+      const nextPath = new URLSearchParams(window.location.search).get('next');
+      router.replace(nextPath?.startsWith('/admin') ? nextPath : '/admin');
       router.refresh();
     } catch (error) {
       console.error('Admin login error:', error);
@@ -61,7 +50,7 @@ export default function AdminLoginPage() {
         <div className="text-center space-y-2">
           <p className="text-xs text-[#f2d272] font-black tracking-[0.3em] uppercase">Gabby UTD</p>
           <h1 className="text-2xl font-black">관리자 로그인</h1>
-          <p className="text-xs text-gray-500">Supabase Auth 계정 중 admin_users에 등록된 계정만 접근할 수 있습니다.</p>
+          <p className="text-xs text-gray-500">Supabase Auth 계정 중 admin_users.uid에 등록된 계정만 접근할 수 있습니다.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

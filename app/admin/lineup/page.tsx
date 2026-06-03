@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 interface Player {
   id: number;
@@ -70,7 +69,6 @@ const FORMATION_CONFIG: Record<string, { id: number; label: string }[]> = {
 };
 
 export default function AdminLineup() {
-  const router = useRouter();
   const [players, setPlayers] = useState<Player[]>([]);
   const [formation, setFormation] = useState<string>('4-3-3'); // 포메이션 상태 추가
   const [loading, setLoading] = useState(true);
@@ -78,23 +76,10 @@ export default function AdminLineup() {
   const [currentLineup, setCurrentLineup] = useState<{ [key: number]: string }>({});
 
   useEffect(() => {
-    const checkAdminAuth = async () => {
-      const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
-    
-      if (isSavedLogin !== 'true') {
-        alert('🔒 접근 권한이 없습니다. 관리자 로그인이 필요합니다.');
-        router.push('/admin'); 
-        return;
-      }
-      
-      // 인증 성공 시 포메이션 데이터와 선수 명단 함께 호출
-      await fetchInitialData();
-    };
+    fetchInitialData();
+  }, []);
 
-    checkAdminAuth();
-  }, [router]);
-
-  const fetchInitialData = async () => {
+  async function fetchInitialData() {
     setLoading(true);
     try {
       // 1. 활성화된 글로벌 포메이션 로드 (formations 테이블의 id: 1 기준)
@@ -129,7 +114,7 @@ export default function AdminLineup() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleSelectChange = (spotId: number, playerId: string) => {
     setCurrentLineup((prev) => ({ ...prev, [spotId]: playerId }));

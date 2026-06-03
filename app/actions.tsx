@@ -16,6 +16,7 @@ const MAX_NAME_LENGTH = 30;
 const MAX_EMAIL_LENGTH = 254;
 const MAX_PHONE_LENGTH = 20;
 const MAX_CONTENT_LENGTH = 1000;
+const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
 
 function escapeHtml(value: string) {
   return value
@@ -85,10 +86,14 @@ async function verifyAdminUser() {
     return { isAdmin: false, supabase };
   }
 
+  if (user.id !== ADMIN_UID) {
+    return { isAdmin: false, supabase };
+  }
+
   const { data: adminUser, error: adminError } = await supabase
     .from('admin_users')
-    .select('user_id')
-    .eq('user_id', user.id)
+    .select('uid')
+    .eq('uid', user.id)
     .single();
 
   return { isAdmin: !adminError && !!adminUser, supabase };
