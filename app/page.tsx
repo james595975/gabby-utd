@@ -44,6 +44,8 @@ interface ScheduleItem {
   match_date: string;
   location?: string | null;
   match_type?: string | null;
+  home_logo?: string; 
+  away_logo?: string; 
   note?: string | null;
 }
 
