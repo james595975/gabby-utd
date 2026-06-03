@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      router.push('/admin');
+      router.replace('/admin');
       router.refresh();
     } catch (error) {
       console.error('Admin login error:', error);
