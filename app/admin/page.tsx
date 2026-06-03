@@ -112,17 +112,36 @@ export default function AdminPage() {
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (password === adminPassword) {
+  const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    // 🔒 브라우저에서 직접 비교하지 않고, 서버 API(/api/admin)에 비밀번호 검증을 요청합니다.
+    const response = await fetch('/api/admin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // API 내부에서 HttpOnly 쿠키('admin_session')를 자동으로 구워줍니다.
       localStorage.setItem('gb_admin_authenticated', 'true');
       setIsAuthenticated(true);
       fetchData();
     } else {
-      alert('비밀번호가 일치하지 않습니다.');
+      // Rate limiting에 걸렸거나 비밀번호가 틀린 경우 서버가 보내준 메시지를 띄웁니다.
+      alert(data.message || '비밀번호가 일치하지 않습니다.');
     }
-  };
+  } catch (error) {
+    console.error('로그인 요청 중 오류 발생:', error);
+    alert('서버와 통신 중 오류가 발생했습니다.');
+  }
+};
+
 
   const handleLogout = () => {
     localStorage.removeItem('gb_admin_authenticated');
