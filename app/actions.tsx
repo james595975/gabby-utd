@@ -1,16 +1,7 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseServerClient } from '@/utils/supabase/server';
 import nodemailer from 'nodemailer';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase 환경변수(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)가 설정되지 않았습니다.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface EmailData {
   type: string;
@@ -82,16 +73,25 @@ function sanitizeEmailData(data: EmailData) {
   };
 }
 
-function verifyAdminActionToken() {
-  const configuredToken = process.env.ADMIN_ACTION_TOKEN;
+async function verifyAdminUser() {
+  const supabase = await createSupabaseServerClient();
 
-  if (!configuredToken) {
-    return false;
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { isAdmin: false, supabase };
   }
 
-  // TODO: 관리자 UI를 만들 때 서버 세션/권한 검증으로 교체하세요.
-  // 지금은 환경변수 토큰이 없으면 민감한 쓰기 작업이 실행되지 않도록 차단합니다.
-  return false;
+  const { data: adminUser, error: adminError } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .single();
+
+  return { isAdmin: !adminError && !!adminUser, supabase };
 }
 
 /**
@@ -99,7 +99,9 @@ function verifyAdminActionToken() {
  */
 export async function updateMatchScore(matchId: number, homeScore: number, awayScore: number) {
   try {
-    if (!verifyAdminActionToken()) {
+    const { isAdmin, supabase } = await verifyAdminUser();
+
+    if (!isAdmin) {
       return { success: false, message: '관리자 권한이 필요합니다.' };
     }
 
@@ -124,7 +126,7 @@ export async function updateMatchScore(matchId: number, homeScore: number, awayS
     if (error) throw error;
 
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Match score update error:', error);
     return { success: false, message: '스코어 업데이트 중 오류가 발생했습니다.' };
   }
@@ -268,7 +270,7 @@ export async function sendInquiryEmail(data: EmailData) {
     });
 
     return { success: true, message: '알림 및 자동 답장 메일이 성공적으로 발송되었습니다.' };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Nodemailer 전송 오류 발생:', error);
     return { 
       success: false, 
