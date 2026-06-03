@@ -38,6 +38,15 @@ interface NewsItem {
   created_at: string;
 }
 
+interface ScheduleItem {
+  id: number;
+  opponent: string;
+  match_date: string;
+  location?: string | null;
+  match_type?: string | null;
+  note?: string | null;
+}
+
 // 🟢 전술판 위의 선수 마커 컴포넌트
 interface PlayerDotProps {
   number: string;
@@ -135,9 +144,11 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
+  const [nextSchedule, setNextSchedule] = useState<ScheduleItem | null>(null);
 
   // 로딩 및 폼 상태 관리
   const [matchLoading, setMatchLoading] = useState<boolean>(true);
+  const [scheduleLoading, setScheduleLoading] = useState<boolean>(true);
   const [newsLoading, setNewsLoading] = useState<boolean>(true);
   const [senderName, setSenderName] = useState('');
 
@@ -193,6 +204,24 @@ export default function Home() {
         setMatchLoading(false);
       }
     };
+    const fetchNextSchedule = async () => {
+      try {
+        const todayDate = new Date().toISOString().slice(0, 10);
+        const { data, error } = await supabase
+          .from('schedules')
+          .select('*')
+          .gte('match_date', todayDate)
+          .order('match_date', { ascending: true })
+          .limit(1);
+        if (data && data.length > 0 && !error) {
+          setNextSchedule(data[0]);
+        }
+      } catch (e) {
+        console.error("Schedule fetch error on home:", e);
+      } finally {
+        setScheduleLoading(false);
+      }
+    };
     const fetchFormation = async () => {
       try {
         const { data, error } = await supabase
@@ -210,6 +239,7 @@ export default function Home() {
     fetchPlayers();
     fetchNews();
     fetchMatchData();
+    fetchNextSchedule();
     fetchFormation();
   }, []);
 
@@ -356,6 +386,9 @@ export default function Home() {
   const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;
 
   const tem_logo = homeLogoUrl;
+  const displayScheduleDate = nextSchedule?.match_date
+    ? new Date(nextSchedule.match_date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
 
   return (
     <div className="bg-[#050505] text-white min-h-screen font-sans antialiased selection:bg-[#ff00ff]/30 selection:text-white overflow-x-hidden">
@@ -456,7 +489,53 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 📰 3. 최근 구단 소식 섹션 */}
+      {/* 🗓️ 3. 다음 경기 일정 섹션 */}
+      <section id="schedule" className="bg-[#050505] w-full py-16 relative z-10">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="flex flex-col gap-2 text-center mb-6">
+            <span className="text-[10px] text-[#f2d272] font-black uppercase tracking-[0.28em]">Next Match</span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">다음 경기 일정</h2>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#111] via-[#090909] to-[#141016] shadow-2xl">
+            {scheduleLoading ? (
+              <div className="py-12 text-center text-sm text-gray-400">다음 경기 일정을 불러오는 중...</div>
+            ) : nextSchedule ? (
+              <div className="grid gap-0 md:grid-cols-[1fr_auto_1fr]">
+                <div className="flex flex-col items-center justify-center p-8 text-center">
+                  <div className="w-20 h-20 rounded-full border border-white/10 bg-black/40 overflow-hidden mb-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={homeLogoUrl} alt="Gabby UTD" className="w-full h-full object-cover p-1" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }} />
+                  </div>
+                  <p className="text-lg font-black text-white">Gabby UTD</p>
+                  <p className="text-[10px] font-bold text-[#f2d272] mt-1">HOME</p>
+                </div>
+
+                <div className="flex flex-col items-center justify-center border-y border-white/10 px-8 py-7 text-center md:border-x md:border-y-0">
+                  <span className="rounded-full border border-[#f2d272]/30 bg-[#f2d272]/10 px-3 py-1 text-[10px] font-black text-[#f2d272]">
+                    {nextSchedule.match_type || '공식전'}
+                  </span>
+                  <p className="mt-4 text-xl sm:text-2xl font-black text-white">{displayScheduleDate}</p>
+                  <p className="mt-2 text-sm font-bold text-gray-400">{nextSchedule.location || '장소 미정'}</p>
+                  {nextSchedule.note && <p className="mt-4 max-w-xs text-xs leading-relaxed text-gray-500 break-keep">{nextSchedule.note}</p>}
+                </div>
+
+                <div className="flex flex-col items-center justify-center p-8 text-center">
+                  <div className="w-20 h-20 rounded-full border border-white/10 bg-black/40 flex items-center justify-center mb-4 text-3xl font-black text-gray-500">
+                    VS
+                  </div>
+                  <p className="text-lg font-black text-white">{nextSchedule.opponent}</p>
+                  <p className="text-[10px] font-bold text-gray-500 mt-1">AWAY</p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-sm text-gray-400">등록된 예정 경기 일정이 없습니다.</div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 📰 4. 최근 구단 소식 섹션 */}
       <section id="news" className="bg-[#050505] w-full py-20 relative z-10">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">

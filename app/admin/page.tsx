@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-type Tab = 'matches' | 'news' | 'players' | 'messages';
+type Tab = 'matches' | 'schedules' | 'news' | 'players' | 'messages';
 
 interface MatchItem {
   id: number;
@@ -28,6 +28,16 @@ interface NewsItem {
   created_at?: string;
 }
 
+interface ScheduleItem {
+  id: number;
+  opponent: string;
+  match_date: string;
+  location?: string | null;
+  match_type?: string | null;
+  note?: string | null;
+  created_at?: string;
+}
+
 interface PlayerItem {
   id: number;
   name: string;
@@ -46,6 +56,7 @@ interface MessageItem {
 
 interface AdminData {
   matches: MatchItem[];
+  schedules: ScheduleItem[];
   news: NewsItem[];
   players: PlayerItem[];
   messages: MessageItem[];
@@ -53,6 +64,7 @@ interface AdminData {
 
 const emptyData: AdminData = {
   matches: [],
+  schedules: [],
   news: [],
   players: [],
   messages: [],
@@ -60,6 +72,7 @@ const emptyData: AdminData = {
 
 const tabs: { id: Tab; label: string; hint: string }[] = [
   { id: 'matches', label: '경기 관리', hint: '결과 등록, 수정, 삭제' },
+  { id: 'schedules', label: '일정 관리', hint: '예정 경기 등록' },
   { id: 'news', label: '뉴스 관리', hint: '공지와 소식 관리' },
   { id: 'players', label: '선수단 관리', hint: '선수 정보와 등번호' },
   { id: 'messages', label: '받은 문의', hint: '문의/입단 신청 확인' },
@@ -87,6 +100,14 @@ const defaultNews = {
   tag: '공지',
 };
 
+const defaultSchedule = {
+  opponent: '',
+  match_date: today(),
+  location: '',
+  match_type: '공식전',
+  note: '',
+};
+
 const defaultPlayer = {
   name: '',
   position: '미드필더',
@@ -101,11 +122,13 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<{ resource: Tab; id: number } | null>(null);
   const [matchForm, setMatchForm] = useState<Record<string, string | number | boolean | null>>(defaultMatch);
+  const [scheduleForm, setScheduleForm] = useState<Record<string, string | null>>(defaultSchedule);
   const [newsForm, setNewsForm] = useState<Record<string, string | null>>(defaultNews);
   const [playerForm, setPlayerForm] = useState<Record<string, string | number | null>>(defaultPlayer);
 
   const counts = useMemo(() => ({
     matches: data.matches.length,
+    schedules: data.schedules.length,
     news: data.news.length,
     players: data.players.length,
     messages: data.messages.length,
@@ -145,6 +168,7 @@ export default function AdminPage() {
   function resetForms() {
     setEditing(null);
     setMatchForm({ ...defaultMatch, date: today() });
+    setScheduleForm({ ...defaultSchedule, match_date: today() });
     setNewsForm(defaultNews);
     setPlayerForm(defaultPlayer);
   }
@@ -152,7 +176,7 @@ export default function AdminPage() {
   async function saveResource(resource: Exclude<Tab, 'messages'>) {
     setSaving(true);
     try {
-      const form = resource === 'matches' ? matchForm : resource === 'news' ? newsForm : playerForm;
+      const form = resource === 'matches' ? matchForm : resource === 'schedules' ? scheduleForm : resource === 'news' ? newsForm : playerForm;
       const method = editing?.resource === resource ? 'PATCH' : 'POST';
       await requestAdmin(method, {
         resource,
@@ -199,6 +223,18 @@ export default function AdminPage() {
     });
   }
 
+  function editSchedule(item: ScheduleItem) {
+    setActiveTab('schedules');
+    setEditing({ resource: 'schedules', id: item.id });
+    setScheduleForm({
+      opponent: item.opponent || '',
+      match_date: item.match_date || today(),
+      location: item.location || '',
+      match_type: item.match_type || '공식전',
+      note: item.note || '',
+    });
+  }
+
   function editNews(item: NewsItem) {
     setActiveTab('news');
     setEditing({ resource: 'news', id: item.id });
@@ -241,7 +277,7 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <nav className="grid gap-2 sm:grid-cols-4">
+        <nav className="grid gap-2 sm:grid-cols-5">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -290,6 +326,37 @@ export default function AdminPage() {
                           <p className="text-xs text-gray-500 mt-1">{match.date || '-'} · {match.match_result || '무승부'} · {match.is_practice ? '친선전' : '공식전'}</p>
                         </div>
                         <RowActions onEdit={() => editMatch(match)} onDelete={() => deleteResource('matches', match.id, '경기')} />
+                      </Row>
+                    ))}
+                  </div>
+                </Panel>
+              </>
+            )}
+
+            {activeTab === 'schedules' && (
+              <>
+                <Panel title={editing?.resource === 'schedules' ? '일정 수정' : '일정 등록'}>
+                  <Field label="상대 팀"><Input value={scheduleForm.opponent} onChange={(v) => setScheduleForm({ ...scheduleForm, opponent: v })} /></Field>
+                  <Field label="경기 날짜"><Input type="date" value={scheduleForm.match_date} onChange={(v) => setScheduleForm({ ...scheduleForm, match_date: v })} /></Field>
+                  <Field label="장소"><Input value={scheduleForm.location} onChange={(v) => setScheduleForm({ ...scheduleForm, location: v })} /></Field>
+                  <Field label="경기 종류">
+                    <select value={String(scheduleForm.match_type)} onChange={(e) => setScheduleForm({ ...scheduleForm, match_type: e.target.value })} className={selectClass}>
+                      <option>공식전</option><option>친선전</option><option>연습경기</option>
+                    </select>
+                  </Field>
+                  <Field label="메모"><Textarea value={scheduleForm.note} onChange={(v) => setScheduleForm({ ...scheduleForm, note: v })} /></Field>
+                  <ActionButtons saving={saving} editing={editing?.resource === 'schedules'} onCancel={resetForms} onSave={() => saveResource('schedules')} />
+                </Panel>
+                <Panel title="일정 목록" wide>
+                  <div className="space-y-3">
+                    {data.schedules.map((schedule) => (
+                      <Row key={schedule.id}>
+                        <div>
+                          <p className="text-sm font-black">Gabby UTD vs {schedule.opponent || '상대 팀'}</p>
+                          <p className="text-xs text-gray-500 mt-1">{schedule.match_date || '-'} · {schedule.match_type || '공식전'} · {schedule.location || '장소 미정'}</p>
+                          {schedule.note && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{schedule.note}</p>}
+                        </div>
+                        <RowActions onEdit={() => editSchedule(schedule)} onDelete={() => deleteResource('schedules', schedule.id, '일정')} />
                       </Row>
                     ))}
                   </div>
