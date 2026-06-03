@@ -27,11 +27,7 @@ export default function MatchesPage() {
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
   const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg'; 
 
-  useEffect(() => {
-    fetchMatches();
-  }, []);
-
-  const fetchMatches = async () => {
+  async function fetchMatches() {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -47,7 +43,12 @@ export default function MatchesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchMatches();
+  }, []);
 
   const totalMatches = matches.length;
   const wins = matches.filter(m => m.match_result === '승리').length;

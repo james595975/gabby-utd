@@ -39,13 +39,12 @@ interface NewsItem {
 }
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [password, setPassword] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // 현재 활성화된 관리 영역 탭 상태
   const [activeTab, setActiveTab] = useState<'matches' | 'news' | 'players' | 'lineup' | 'messages'>('matches');
@@ -76,14 +75,13 @@ export default function AdminPage() {
   const [addAwayLogo, setAddAwayLogo] = useState(DEFAULT_AWAY_LOGO);
   const [addIsPractice, setAddIsPractice] = useState(false);
   const [addMatchResult, setAddMatchResult] = useState('승리'); 
-  const [addMatchDate, setAddMatchDate] = useState('');
+  const [addMatchDate, setAddMatchDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // 선수 등록 및 수정 관련 상태 (등번호 추가 🔢)
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPosition, setNewPlayerPosition] = useState('미드필더');
   const [newPlayerBackNumber, setNewPlayerBackNumber] = useState<string>(''); // 등번호 상태
   const [newPlayerLineupSpot, setNewPlayerLineupSpot] = useState<string>('');
-  const [formation, setFormation] = useState('4-4-2');
 
   // 개별 선수 등번호 수정을 위한 인라인 상태 저장 매퍼 (선택 사항)
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
@@ -100,40 +98,21 @@ export default function AdminPage() {
   const [messageFilter, setMessageFilter] = useState<'all' | 'join' | 'inquiry'>('all');
 
   useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    setAddMatchDate(todayStr);
-
-    const isSavedLogin = localStorage.getItem('gb_admin_authenticated');
-    if (isSavedLogin === 'true') {
-      setIsAuthenticated(true);
-      fetchData();
-    } else {
-      setIsLoading(false);
-    }
+    fetchData();
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-    if (password === adminPassword) {
-      localStorage.setItem('gb_admin_authenticated', 'true');
-      setIsAuthenticated(true);
-      fetchData();
-    } else {
-      alert('비밀번호가 일치하지 않습니다.');
-    }
+    alert('관리자 인증은 서버에서 처리됩니다. /admin에 다시 접속해 주세요.');
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('gb_admin_authenticated');
     setIsAuthenticated(false);
     setPassword('');
   };
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
-      setIsLoading(false);
-      
       // 🔢 선수단 로드 시 등번호(back_number) 오름차순 정렬, 번호가 없으면 뒤로 배치
       const { data: pData } = await supabase
         .from('players')
@@ -144,9 +123,6 @@ export default function AdminPage() {
       const { data: mData } = await supabase.from('messages').select('*').order('id', { ascending: false });
       if (mData) setMessages(mData);
 
-      const { data: fData } = await supabase.from('formations').select('current_formation').eq('id', 1).single();
-      if (fData) setFormation(fData.current_formation);
-
       const { data: matchData, error: matchError } = await supabase.from('matches').select('*').order('id', { ascending: false });
       if (matchData && !matchError) setMatches(matchData);
 
@@ -155,52 +131,7 @@ export default function AdminPage() {
     } catch (e) {
       console.error(e);
     }
-  };
-
-  // 포메이션 스폿 매핑 핸들러
-  const handleAssignSpot = async (playerId: number, spotNumber: number | null) => {
-    try {
-      // 1단계: 대기 명단으로 빼는 게 아니라 특정 스폿(1~11)에 선수를 배치하는 경우
-      if (spotNumber !== null) {
-        // 원래 그 전술 자리에 있던 선수의 lineup_spot을 null(대기 명단)로 먼저 비워줍니다.
-        await supabase
-          .from('players')
-          .update({ lineup_spot: null })
-          .eq('lineup_spot', spotNumber);
-      }
-
-      // 2단계: 선택한 선수를 원하는 전술 자리에 최종적으로 업데이트합니다.
-      const { error } = await supabase
-        .from('players')
-        .update({ lineup_spot: spotNumber })
-        .eq('id', playerId);
-
-      if (error) {
-        alert('라인업 지정 실패: ' + error.message);
-      } else {
-        fetchData(); // UI 실시간 갱신
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  const handleUpdateFormation = async (selectedFormation: string) => {
-  try {
-    const { error } = await supabase
-      .from('formations')
-      .update({ current_formation: selectedFormation, updated_at: new Date().toISOString() })
-      .eq('id', 1);
-
-    if (error) {
-      alert('포메이션 변경 실패: ' + error.message);
-    } else {
-      setFormation(selectedFormation);
-      alert(`포메이션이 ${selectedFormation}으로 변경되었습니다! ⚽`);
-    }
-  } catch (err) {
-    console.error(err);
   }
-};
 
   // 🔢 등번호 인라인 수정용 핸들러 추가
   const handleUpdateBackNumber = async (playerId: number, backNumber: number | null) => {

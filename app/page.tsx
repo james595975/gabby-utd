@@ -132,8 +132,7 @@ const FORMATION_STYLES: Record<string, Record<number, { top: string; left: strin
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'inquiry' | 'join'>('inquiry');
   const [formation, setFormation] = useState<string>('4-3-3');
-  const [players, setPlayers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
 
@@ -149,6 +148,7 @@ export default function Home() {
 
   const [phone, setPhone] = useState(''); 
   const [content, setContent] = useState('');
+  const [website, setWebsite] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 선수 선택 상태 관리 (클릭 시 강조 효과용)
@@ -273,27 +273,13 @@ export default function Home() {
 
     try {
       setIsSubmitting(true);
-      const { error } = await supabase
-        .from('messages')
-        .insert([
-          { 
-            type: activeTab, 
-            name: senderName.trim(), 
-            content: `[이메일: ${fullEmail} / 연락처: ${phone.trim()}]\n\n내용:\n${content.trim()}` 
-          }
-        ]);
-
-      if (error) {
-        alert('데이터베이스 전송에 실패했습니다: ' + error.message);
-        return;
-      }
-
       const emailResult = await sendInquiryEmail({
         type: activeTab,
         name: senderName.trim(),
         email: fullEmail,
         phone: phone.trim(),
-        content: content.trim()
+        content: content.trim(),
+        website,
       });
 
       if (emailResult.success) {
@@ -304,8 +290,9 @@ export default function Home() {
         setDomainSelect('naver.com');
         setPhone('');
         setContent('');
+        setWebsite('');
       } else {
-        alert('DB 저장은 완료되었으나, 알림 메일 발송에 실패했습니다: ' + emailResult.message);
+        alert('전송에 실패했습니다: ' + emailResult.message);
       }
     } catch (err) {
       console.error(err);
@@ -717,6 +704,16 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSendMessage} className="bg-black/40 backdrop-blur-md rounded-2xl p-6 sm:p-8 border border-gray-800/60 shadow-2xl space-y-5">
+            <input
+              type="text"
+              name="website"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              className="hidden"
+              aria-hidden="true"
+            />
             <div>
               <label className="block text-xs font-bold text-gray-300 mb-1.5">이름 *</label>
               <input 

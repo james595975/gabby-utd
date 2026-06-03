@@ -6,12 +6,18 @@ import nodemailer from 'nodemailer';
 // 1. Supabase 환경변수 검증 및 클라이언트 생성
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase 환경변수(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)가 설정되지 않았습니다.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey || supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
 
 // 2. 이메일 데이터 인터페이스 정의
 interface EmailData {
@@ -20,6 +26,73 @@ interface EmailData {
   email: string;
   phone: string;
   content: string;
+  website?: string;
+}
+
+const MAX_FIELD_LENGTHS = {
+  name: 40,
+  email: 120,
+  phone: 20,
+  content: 1500,
+};
+
+const recentInquiryAttempts = new Map<string, number>();
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function validateInquiry(data: EmailData) {
+  const clean = {
+    type: data.type === 'join' ? 'join' : 'inquiry',
+    name: data.name.trim(),
+    email: data.email.trim().toLowerCase(),
+    phone: data.phone.trim(),
+    content: data.content.trim(),
+  };
+
+  if (data.website?.trim()) {
+    return { ok: false as const, message: '요청을 처리할 수 없습니다.' };
+  }
+
+  if (!clean.name || !clean.email || !clean.phone || !clean.content) {
+    return { ok: false as const, message: '필수 항목(*)을 모두 입력해 주세요.' };
+  }
+
+  if (clean.name.length > MAX_FIELD_LENGTHS.name || clean.email.length > MAX_FIELD_LENGTHS.email || clean.phone.length > MAX_FIELD_LENGTHS.phone || clean.content.length > MAX_FIELD_LENGTHS.content) {
+    return { ok: false as const, message: '입력한 내용이 너무 깁니다. 내용을 조금 줄여주세요.' };
+  }
+
+  if (!/^[a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/.test(clean.name)) {
+    return { ok: false as const, message: '이름 필드에는 문자(한글 또는 영문)만 입력할 수 있습니다.' };
+  }
+
+  if (!/^[0-9]+$/.test(clean.phone)) {
+    return { ok: false as const, message: '연락처 필드에는 숫자만 입력할 수 있습니다.' };
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean.email)) {
+    return { ok: false as const, message: '이메일 형식을 확인해 주세요.' };
+  }
+
+  const rateLimitKey = `${clean.email}:${clean.phone}`;
+  const now = Date.now();
+  const lastAttempt = recentInquiryAttempts.get(rateLimitKey);
+  if (lastAttempt && now - lastAttempt < 60_000) {
+    return { ok: false as const, message: '잠시 후 다시 전송해 주세요.' };
+  }
+  recentInquiryAttempts.set(rateLimitKey, now);
+
+  return { ok: true as const, data: clean };
 }
 
 /**
@@ -36,9 +109,9 @@ export async function updateMatchScore(matchId: number, homeScore: number, awayS
     if (error) throw error;
 
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Match score update error:', error);
-    return { success: false, message: error.message || '스코어 업데이트 중 오류가 발생했습니다.' };
+    return { success: false, message: getErrorMessage(error, '스코어 업데이트 중 오류가 발생했습니다.') };
   }
 }
 
@@ -46,6 +119,16 @@ export async function updateMatchScore(matchId: number, homeScore: number, awayS
  * [기능 2] 하단 문의 폼 전송 시 구단 대표 메일 알림 및 유저 자동 답장을 쏴주는 서버 액션
  */
 export async function sendInquiryEmail(data: EmailData) {
+  const validation = validateInquiry(data);
+  if (!validation.ok) {
+    return {
+      success: false,
+      message: validation.message,
+    };
+  }
+
+  const inquiry = validation.data;
+
   // 환경변수 체크 (Nodemailer 설정 미비 시 에러 방지)
   if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
     console.error('SMTP 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요.');
@@ -64,13 +147,36 @@ export async function sendInquiryEmail(data: EmailData) {
     },
   });
 
-  const typeLabel = data.type === 'join' ? '🏆 입단 신청' : '✉️ 일반 문의';
+  const { error: dbError } = await supabase
+    .from('messages')
+    .insert([
+      {
+        type: inquiry.type,
+        name: inquiry.name,
+        content: `[이메일: ${inquiry.email} / 연락처: ${inquiry.phone}]\n\n내용:\n${inquiry.content}`,
+      },
+    ]);
+
+  if (dbError) {
+    console.error('Inquiry DB insert error:', dbError);
+    return {
+      success: false,
+      message: '데이터베이스 저장에 실패했습니다.',
+    };
+  }
+
+  const typeLabel = inquiry.type === 'join' ? '🏆 입단 신청' : '✉️ 일반 문의';
+  const safeName = escapeHtml(inquiry.name);
+  const safeEmail = escapeHtml(inquiry.email);
+  const safePhone = escapeHtml(inquiry.phone);
+  const safeContent = escapeHtml(inquiry.content);
+  const safeTypeLabel = escapeHtml(typeLabel);
 
   // 2. [구단 관리자용] 관리자가 받아볼 메일 본문 구성 (HTML 스타일링 포함)
   const mailOptions = {
     from: process.env.SMTP_USER,
     to: process.env.SMTP_USER, // ✨ 알림을 수신할 실제 구단 대표 이메일 주소
-    subject: `[Gabby UTD] ${typeLabel} - ${data.name}님의 신청서가 접수되었습니다.`,
+    subject: `[Gabby UTD] ${typeLabel} - ${inquiry.name}님의 신청서가 접수되었습니다.`,
     html: `
       <div style="font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; padding: 24px; border-radius: 16px; background-color: #ffffff; color: #1f2937;">
         <div style="background-color: #4a1525; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
@@ -80,25 +186,25 @@ export async function sendInquiryEmail(data: EmailData) {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 10px 0; font-weight: bold; color: #6b7280; width: 100px;">접수 구분</td>
-            <td style="padding: 10px 0; font-weight: bold; color: #4a1525;">${typeLabel}</td>
+            <td style="padding: 10px 0; font-weight: bold; color: #4a1525;">${safeTypeLabel}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">신청자 이름</td>
-            <td style="padding: 10px 0; font-weight: 600;">${data.name}</td>
+            <td style="padding: 10px 0; font-weight: 600;">${safeName}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">이메일 주소</td>
-            <td style="padding: 10px 0;"><a href="mailto:${data.email}" style="color: #3b82f6; text-decoration: none;">${data.email}</a></td>
+            <td style="padding: 10px 0;"><a href="mailto:${safeEmail}" style="color: #3b82f6; text-decoration: none;">${safeEmail}</a></td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">연락처</td>
-            <td style="padding: 10px 0; font-weight: 600;">${data.phone}</td>
+            <td style="padding: 10px 0; font-weight: 600;">${safePhone}</td>
           </tr>
         </table>
         
         <div style="margin-top: 24px;">
           <p style="font-weight: bold; color: #6b7280; font-size: 14px; margin-bottom: 8px;">📝 신청 및 문의 내용</p>
-          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 16px; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; font-size: 14px; color: #374151;">${data.content}</div>
+          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 16px; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; font-size: 14px; color: #374151;">${safeContent}</div>
         </div>
         
         <div style="margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 16px;">
@@ -120,9 +226,9 @@ export async function sendInquiryEmail(data: EmailData) {
         </div>
         
         <div style="padding: 40px 30px; background-color: #ffffff;">
-          <p style="font-size: 16px; font-weight: bold; margin-top: 0; color: #111;">안녕하세요, ${data.name}님.</p>
+          <p style="font-size: 16px; font-weight: bold; margin-top: 0; color: #111;">안녕하세요, ${safeName}님.</p>
           <p style="font-size: 14px; color: #555; margin-bottom: 25px;">
-            Gabby UTD 구단 홈페이지를 통해 주신 소중한 <strong>${typeLabel}</strong>이 정상적으로 접수되었습니다.
+            Gabby UTD 구단 홈페이지를 통해 주신 소중한 <strong>${safeTypeLabel}</strong>이 정상적으로 접수되었습니다.
           </p>
           
           <div style="background-color: #fcf8f9; border-left: 4px solid #d4af37; padding: 20px; margin: 30px 0; border-radius: 6px; border: 1px solid #f5e6e8; border-left-width: 4px;">
@@ -136,15 +242,15 @@ export async function sendInquiryEmail(data: EmailData) {
             <table style="width: 100%; font-size: 13px; border-collapse: collapse; color: #555;">
               <tr>
                 <td style="width: 90px; padding: 6px 0; font-weight: bold; color: #888;">문의 유형</td>
-                <td style="padding: 6px 0; font-weight: bold; color: #4a1525;">${typeLabel}</td>
+                <td style="padding: 6px 0; font-weight: bold; color: #4a1525;">${safeTypeLabel}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; font-weight: bold; color: #888;">신청자명</td>
-                <td style="padding: 6px 0;">${data.name}님</td>
+                <td style="padding: 6px 0;">${safeName}님</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; font-weight: bold; color: #888;">연락처</td>
-                <td style="padding: 6px 0; font-family: monospace;">${data.phone}</td>
+                <td style="padding: 6px 0; font-family: monospace;">${safePhone}</td>
               </tr>
             </table>
           </div>
@@ -167,17 +273,17 @@ export async function sendInquiryEmail(data: EmailData) {
     // 4-2. 유저에게 자동 안내 메일 발송
     await transporter.sendMail({
       from: `"Gabby UTD" <${process.env.SMTP_USER}>`, 
-      to: data.email, // 유저가 입력한 이메일 주소
+      to: inquiry.email, // 유저가 입력한 이메일 주소
       subject: `[Gabby UTD] 신청하신 내용이 정상적으로 접수되었습니다.`,
       html: autoReplyHtml,
     });
 
     return { success: true, message: '알림 및 자동 답장 메일이 성공적으로 발송되었습니다.' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Nodemailer 전송 오류 발생:', error);
     return { 
       success: false, 
-      message: error.message || '메일 서버 전송 중 예기치 못한 에러가 발생했습니다.' 
+      message: getErrorMessage(error, '메일 서버 전송 중 예기치 못한 에러가 발생했습니다.') 
     };
   }
 }
