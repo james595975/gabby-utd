@@ -9,13 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.106.2",
     "@vercel/speed-insights": "^2.0.0",
     "next": "16.2.6",
+    "nodemailer": "^8.0.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@supabase/supabase-js": "^2.106.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
@@ -24,7 +26,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "install": "^0.13.0",
-    "nodemailer": "^8.0.10",
     "npm": "^11.16.0",
     "tailwindcss": "^4",
     "typescript": "^5"

@@ -1,19 +1,8 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseServerClient } from '@/utils/supabase/server';
 import nodemailer from 'nodemailer';
 
-// 1. Supabase 환경변수 검증 및 클라이언트 생성
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase 환경변수(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)가 설정되지 않았습니다.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// 2. 이메일 데이터 인터페이스 정의
 interface EmailData {
   type: string;
   name: string;
@@ -22,11 +11,112 @@ interface EmailData {
   content: string;
 }
 
+const ALLOWED_INQUIRY_TYPES = ['join', 'inquiry'] as const;
+const MAX_NAME_LENGTH = 30;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_PHONE_LENGTH = 20;
+const MAX_CONTENT_LENGTH = 1000;
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function sanitizeEmailData(data: EmailData) {
+  const type = data.type?.trim();
+  const name = data.name?.trim();
+  const email = data.email?.trim();
+  const phone = data.phone?.trim();
+  const content = data.content?.trim();
+
+  const nameRegex = /^[a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[0-9]+$/;
+
+  if (!ALLOWED_INQUIRY_TYPES.includes(type as (typeof ALLOWED_INQUIRY_TYPES)[number])) {
+    return { success: false as const, message: '잘못된 문의 유형입니다.' };
+  }
+
+  if (!name || !email || !phone || !content) {
+    return { success: false as const, message: '필수 항목을 모두 입력해 주세요.' };
+  }
+
+  if (name.length > MAX_NAME_LENGTH || !nameRegex.test(name)) {
+    return { success: false as const, message: '이름 형식이 올바르지 않습니다.' };
+  }
+
+  if (email.length > MAX_EMAIL_LENGTH || !emailRegex.test(email)) {
+    return { success: false as const, message: '이메일 형식이 올바르지 않습니다.' };
+  }
+
+  if (phone.length > MAX_PHONE_LENGTH || !phoneRegex.test(phone)) {
+    return { success: false as const, message: '연락처 형식이 올바르지 않습니다.' };
+  }
+
+  if (content.length > MAX_CONTENT_LENGTH) {
+    return { success: false as const, message: `문의 내용은 ${MAX_CONTENT_LENGTH}자 이하로 입력해 주세요.` };
+  }
+
+  return {
+    success: true as const,
+    data: {
+      type,
+      name,
+      email,
+      phone,
+      content,
+    },
+  };
+}
+
+async function verifyAdminUser() {
+  const supabase = await createSupabaseServerClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { isAdmin: false, supabase };
+  }
+
+  const { data: adminUser, error: adminError } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .single();
+
+  return { isAdmin: !adminError && !!adminUser, supabase };
+}
+
 /**
  * [기능 1] 경기 스코어를 라이브로 업데이트하는 서버 액션
  */
 export async function updateMatchScore(matchId: number, homeScore: number, awayScore: number) {
   try {
+    const { isAdmin, supabase } = await verifyAdminUser();
+
+    if (!isAdmin) {
+      return { success: false, message: '관리자 권한이 필요합니다.' };
+    }
+
+    if (!Number.isInteger(matchId) || matchId <= 0) {
+      return { success: false, message: '경기 ID가 올바르지 않습니다.' };
+    }
+
+    if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
+      return { success: false, message: '점수 형식이 올바르지 않습니다.' };
+    }
+
+    if (homeScore < 0 || awayScore < 0 || homeScore > 99 || awayScore > 99) {
+      return { success: false, message: '점수 범위가 올바르지 않습니다.' };
+    }
+
     const { data, error } = await supabase
       .from('matches')
       .update({ home_score: homeScore, away_score: awayScore })
@@ -36,9 +126,9 @@ export async function updateMatchScore(matchId: number, homeScore: number, awayS
     if (error) throw error;
 
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Match score update error:', error);
-    return { success: false, message: error.message || '스코어 업데이트 중 오류가 발생했습니다.' };
+    return { success: false, message: '스코어 업데이트 중 오류가 발생했습니다.' };
   }
 }
 
@@ -46,31 +136,42 @@ export async function updateMatchScore(matchId: number, homeScore: number, awayS
  * [기능 2] 하단 문의 폼 전송 시 구단 대표 메일 알림 및 유저 자동 답장을 쏴주는 서버 액션
  */
 export async function sendInquiryEmail(data: EmailData) {
-  // 환경변수 체크 (Nodemailer 설정 미비 시 에러 방지)
+  const validated = sanitizeEmailData(data);
+
+  if (!validated.success) {
+    return validated;
+  }
+
+  const safeData = {
+    type: validated.data.type,
+    name: escapeHtml(validated.data.name),
+    email: escapeHtml(validated.data.email),
+    phone: escapeHtml(validated.data.phone),
+    content: escapeHtml(validated.data.content),
+  };
+
   if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
     console.error('SMTP 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요.');
     return { 
       success: false, 
-      message: '서버 메일 설정(SMTP_USER, SMTP_PASSWORD)이 누락되었습니다.' 
+      message: '서버 메일 설정이 누락되었습니다.' 
     };
   }
 
-  // 1. 메일을 발송할 SMTP Transporter 설정 (Gmail 기준)
   const transporter = nodemailer.createTransport({
     service: 'gmail', 
     auth: {
-      user: process.env.SMTP_USER,     // 보내는 사람 Gmail 계정
-      pass: process.env.SMTP_PASSWORD, // 구글 계정에서 발급받은 16자리 앱 비밀번호
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 
-  const typeLabel = data.type === 'join' ? '🏆 입단 신청' : '✉️ 일반 문의';
+  const typeLabel = safeData.type === 'join' ? '🏆 입단 신청' : '✉️ 일반 문의';
 
-  // 2. [구단 관리자용] 관리자가 받아볼 메일 본문 구성 (HTML 스타일링 포함)
   const mailOptions = {
     from: process.env.SMTP_USER,
-    to: process.env.SMTP_USER, // ✨ 알림을 수신할 실제 구단 대표 이메일 주소
-    subject: `[Gabby UTD] ${typeLabel} - ${data.name}님의 신청서가 접수되었습니다.`,
+    to: process.env.SMTP_USER,
+    subject: `[Gabby UTD] ${typeLabel} - ${safeData.name}님의 신청서가 접수되었습니다.`,
     html: `
       <div style="font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; padding: 24px; border-radius: 16px; background-color: #ffffff; color: #1f2937;">
         <div style="background-color: #4a1525; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
@@ -84,21 +185,21 @@ export async function sendInquiryEmail(data: EmailData) {
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">신청자 이름</td>
-            <td style="padding: 10px 0; font-weight: 600;">${data.name}</td>
+            <td style="padding: 10px 0; font-weight: 600;">${safeData.name}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">이메일 주소</td>
-            <td style="padding: 10px 0;"><a href="mailto:${data.email}" style="color: #3b82f6; text-decoration: none;">${data.email}</a></td>
+            <td style="padding: 10px 0;"><a href="mailto:${safeData.email}" style="color: #3b82f6; text-decoration: none;">${safeData.email}</a></td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">연락처</td>
-            <td style="padding: 10px 0; font-weight: 600;">${data.phone}</td>
+            <td style="padding: 10px 0; font-weight: 600;">${safeData.phone}</td>
           </tr>
         </table>
         
         <div style="margin-top: 24px;">
           <p style="font-weight: bold; color: #6b7280; font-size: 14px; margin-bottom: 8px;">📝 신청 및 문의 내용</p>
-          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 16px; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; font-size: 14px; color: #374151;">${data.content}</div>
+          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 16px; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; font-size: 14px; color: #374151;">${safeData.content}</div>
         </div>
         
         <div style="margin-top: 30px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 16px;">
@@ -109,7 +210,6 @@ export async function sendInquiryEmail(data: EmailData) {
     `,
   };
 
-  // 3. ✨ [유저 자동 답장용] 템플릿 구성
   const autoReplyHtml = `
     <div style="background-color: #f9f9f9; padding: 40px 20px; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; color: #333; line-height: 1.6;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e1e1e1;">
@@ -120,7 +220,7 @@ export async function sendInquiryEmail(data: EmailData) {
         </div>
         
         <div style="padding: 40px 30px; background-color: #ffffff;">
-          <p style="font-size: 16px; font-weight: bold; margin-top: 0; color: #111;">안녕하세요, ${data.name}님.</p>
+          <p style="font-size: 16px; font-weight: bold; margin-top: 0; color: #111;">안녕하세요, ${safeData.name}님.</p>
           <p style="font-size: 14px; color: #555; margin-bottom: 25px;">
             Gabby UTD 구단 홈페이지를 통해 주신 소중한 <strong>${typeLabel}</strong>이 정상적으로 접수되었습니다.
           </p>
@@ -140,11 +240,11 @@ export async function sendInquiryEmail(data: EmailData) {
               </tr>
               <tr>
                 <td style="padding: 6px 0; font-weight: bold; color: #888;">신청자명</td>
-                <td style="padding: 6px 0;">${data.name}님</td>
+                <td style="padding: 6px 0;">${safeData.name}님</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; font-weight: bold; color: #888;">연락처</td>
-                <td style="padding: 6px 0; font-family: monospace;">${data.phone}</td>
+                <td style="padding: 6px 0; font-family: monospace;">${safeData.phone}</td>
               </tr>
             </table>
           </div>
@@ -159,25 +259,22 @@ export async function sendInquiryEmail(data: EmailData) {
     </div>
   `;
 
-  // 4. 메일 발송 수행 (관리자 알림 -> 유저 안내)
   try {
-    // 4-1. 관리자에게 먼저 알림 발송
     await transporter.sendMail(mailOptions);
     
-    // 4-2. 유저에게 자동 안내 메일 발송
     await transporter.sendMail({
       from: `"Gabby UTD" <${process.env.SMTP_USER}>`, 
-      to: data.email, // 유저가 입력한 이메일 주소
+      to: validated.data.email,
       subject: `[Gabby UTD] 신청하신 내용이 정상적으로 접수되었습니다.`,
       html: autoReplyHtml,
     });
 
     return { success: true, message: '알림 및 자동 답장 메일이 성공적으로 발송되었습니다.' };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Nodemailer 전송 오류 발생:', error);
     return { 
       success: false, 
-      message: error.message || '메일 서버 전송 중 예기치 못한 에러가 발생했습니다.' 
+      message: '메일 서버 전송 중 오류가 발생했습니다.' 
     };
   }
 }
