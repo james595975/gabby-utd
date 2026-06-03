@@ -132,8 +132,7 @@ const FORMATION_STYLES: Record<string, Record<number, { top: string; left: strin
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'inquiry' | 'join'>('inquiry');
   const [formation, setFormation] = useState<string>('4-3-3');
-  const [players, setPlayers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
 

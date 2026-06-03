@@ -5,6 +5,7 @@ const loginAttempts = new Map<string, { count: number; timestamp: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_TIME = 5 * 60 * 1000;
 const SESSION_MAX_AGE_SECONDS = 30 * 60;
+const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
 
 function getClientIP(request: NextRequest): string {
   const forwardedFor = request.headers.get('x-forwarded-for');
@@ -100,10 +101,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (loginData.user.id !== ADMIN_UID) {
+      incrementAttempt(clientIP);
+      await supabase.auth.signOut();
+      return NextResponse.json(
+        { success: false, message: '관리자 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
-      .select('user_id')
-      .eq('user_id', loginData.user.id)
+      .select('uid')
+      .eq('uid', loginData.user.id)
       .single();
 
     if (adminError || !adminUser) {

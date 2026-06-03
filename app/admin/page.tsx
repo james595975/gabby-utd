@@ -1,58 +1,35 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
 
 export default function AdminPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-          router.replace('/admin/login');
-          return;
-        }
-
-        const { data: adminUser, error: adminError } = await supabase
-          .from('admin_users')
-          .select('user_id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (adminError || !adminUser) {
-          await supabase.auth.signOut();
-          router.replace('/admin/login');
-          return;
-        }
-
-        setIsLoading(false);
-      } catch (err) {
-        console.error('관리자 인증 확인 중 오류:', err);
-        router.replace('/admin/login');
-      }
-    };
-
-    checkAdmin();
-  }, [router, supabase]);
-
-  if (isLoading) {
-    return (
-      <div className="bg-[#050505] min-h-screen flex items-center justify-center text-white px-4 relative overflow-hidden">
-        <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-[#1a233a]/20 rounded-full blur-[120px] pointer-events-none z-0" />
-        <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[#3b1028]/20 rounded-full blur-[120px] pointer-events-none z-0" />
-        <p className="text-sm text-gray-400 relative z-10">관리자 인증중...</p>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <h1>관리자 대시보드</h1>
-    </div>
+    <main className="min-h-screen bg-[#050505] text-white px-4 py-10">
+      <section className="max-w-3xl mx-auto space-y-6">
+        <div className="border-b border-gray-800 pb-4">
+          <p className="text-xs text-[#f2d272] font-black tracking-[0.3em] uppercase">Gabby UTD Admin</p>
+          <h1 className="text-2xl font-black mt-2">관리자 대시보드</h1>
+          <p className="text-sm text-gray-500 mt-2">Supabase Auth 세션과 admin_users.uid 확인을 통과한 계정만 접근할 수 있습니다.</p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/admin/lineup"
+            className="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-5 hover:border-[#f2d272]/60 transition-colors"
+          >
+            <span className="text-xs text-gray-500 font-bold">LINEUP</span>
+            <h2 className="text-lg font-black mt-2">선발 라인업 관리</h2>
+            <p className="text-xs text-gray-500 mt-2">포메이션과 선수 배치를 수정합니다.</p>
+          </Link>
+
+          <Link
+            href="/"
+            className="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-5 hover:border-[#f2d272]/60 transition-colors"
+          >
+            <span className="text-xs text-gray-500 font-bold">HOME</span>
+            <h2 className="text-lg font-black mt-2">홈 화면 보기</h2>
+            <p className="text-xs text-gray-500 mt-2">공개 페이지로 돌아갑니다.</p>
+          </Link>
+        </div>
+      </section>
+    </main>
   );
 }

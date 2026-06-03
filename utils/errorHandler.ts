@@ -14,8 +14,8 @@ export class SafeError {
 // ✅ 에러 로깅
 export const logError = (
   location: string,
-  error: any,
-  context?: Record<string, any>
+  error: unknown,
+  context?: Record<string, unknown>
 ) => {
   const timestamp = new Date().toISOString();
   console.error(
@@ -40,16 +40,18 @@ export const logError = (
 };
 
 // ✅ 안전한 에러 메시지
-export const getSafeErrorMessage = (error: any): string => {
+export const getSafeErrorMessage = (error: unknown): string => {
   if (error instanceof SafeError) {
     return error.userMessage;
   }
 
-  if (error?.message?.includes('UNIQUE violation')) {
+  const message = error instanceof Error ? error.message : '';
+
+  if (message.includes('UNIQUE violation')) {
     return '이미 존재하는 데이터입니다.';
   }
 
-  if (error?.message?.includes('foreign key')) {
+  if (message.includes('foreign key')) {
     return '관련 데이터가 없습니다.';
   }
 
