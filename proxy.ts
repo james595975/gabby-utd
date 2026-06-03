@@ -3,14 +3,12 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
+const FALLBACK_SUPABASE_URL = 'https://bdsatcdfwqgrlbqvikte.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkc2F0Y2Rmd3FncmxicXZpa3RlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTY3NDUsImV4cCI6MjA5NTYzMjc0NX0.wjiA9JeeW5vyeUAxsyYLIUiSe5yLrgYHmqXkP5ORzJw';
 
 function getSupabaseConfig() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase public environment variables are not configured.');
-  }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
 
   return { supabaseUrl, supabaseAnonKey };
 }
@@ -33,13 +31,29 @@ async function isAdminUser(userId: string, supabaseUrl: string, supabaseAnonKey:
       : undefined,
   });
 
-  const { data, error } = await supabase
+  const uidLookup = await supabase
     .from('admin_users')
     .select('uid')
     .eq('uid', userId)
     .maybeSingle();
 
-  return !error && !!data;
+  if (!uidLookup.error && uidLookup.data) return true;
+
+  const userIdLookup = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!userIdLookup.error && userIdLookup.data) return true;
+
+  const uppercaseUidLookup = await supabase
+    .from('admin_users')
+    .select('"UID"')
+    .eq('UID', userId)
+    .maybeSingle();
+
+  return !uppercaseUidLookup.error && !!uppercaseUidLookup.data;
 }
 
 export async function proxy(request: NextRequest) {

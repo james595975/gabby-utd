@@ -94,9 +94,23 @@ async function verifyAdminUser() {
     .from('admin_users')
     .select('uid')
     .eq('uid', user.id)
-    .single();
+    .maybeSingle();
 
-  return { isAdmin: !adminError && !!adminUser, supabase };
+  if (!adminError && adminUser) {
+    return { isAdmin: true, supabase };
+  }
+
+  const { data: legacyAdminUser, error: legacyAdminError } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!legacyAdminError && legacyAdminUser) {
+    return { isAdmin: true, supabase };
+  }
+
+  return { isAdmin: false, supabase };
 }
 
 /**
