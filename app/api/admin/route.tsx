@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// Rate limiting을 위한 메모리 저장소 (프로덕션에서는 Redis 사용 권장)
 const loginAttempts = new Map<string, { count: number; timestamp: number }>();
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_TIME = 5 * 60 * 1000; // 5분
+const LOCKOUT_TIME = 5 * 60 * 1000;
+const SESSION_MAX_AGE_SECONDS = 30 * 60;
 
-// 클라이언트 IP 추출
 function getClientIP(request: NextRequest): string {
   const forwardedFor = request.headers.get('x-forwarded-for');
   const clientIP = request.headers.get('x-real-ip');
   return forwardedFor?.split(',')[0] || clientIP || 'unknown';
 }
 
-// Rate limiting 확인
 function checkRateLimit(ip: string): { allowed: boolean; message: string } {
   const now = Date.now();
   const attempt = loginAttempts.get(ip);
@@ -25,14 +24,12 @@ function checkRateLimit(ip: string): { allowed: boolean; message: string } {
       };
     }
   } else {
-    // 시간이 지나면 초기화
     loginAttempts.delete(ip);
   }
 
   return { allowed: true, message: '' };
 }
 
-// 시도 횟수 증가
 function incrementAttempt(ip: string): void {
   const now = Date.now();
   const attempt = loginAttempts.get(ip);
@@ -44,14 +41,28 @@ function incrementAttempt(ip: string): void {
   }
 }
 
-// 성공 시 시도 초기화
 function clearAttempt(ip: string): void {
   loginAttempts.delete(ip);
 }
 
+function createSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // ✅ Rate Limiting 검사
     const clientIP = getClientIP(request);
     const rateLimitCheck = checkRateLimit(clientIP);
 
@@ -63,56 +74,74 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { password } = body;
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
 
-    if (!password) {
+    if (!email || !password) {
       incrementAttempt(clientIP);
       return NextResponse.json(
-        { success: false, message: '비밀번호가 필요합니다.' },
+        { success: false, message: '이메일과 비밀번호가 필요합니다.' },
         { status: 400 }
       );
     }
 
-    // ✅ 서버 환경 변수에서 비밀번호 검증 (클라이언트에 노출 안 됨)
-    const adminPassword = process.env.ADMIN_PASSWORD;
+    const supabase = createSupabaseClient();
 
-    if (password !== adminPassword) {
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (loginError || !loginData.user || !loginData.session) {
       incrementAttempt(clientIP);
       return NextResponse.json(
-        { success: false, message: '비밀번호가 일치하지 않습니다.' },
+        { success: false, message: '로그인 정보가 올바르지 않습니다.' },
         { status: 401 }
       );
     }
 
-    // ✅ 비밀번호 일치 시 시도 초기화
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', loginData.user.id)
+      .single();
+
+    if (adminError || !adminUser) {
+      incrementAttempt(clientIP);
+      await supabase.auth.signOut();
+      return NextResponse.json(
+        { success: false, message: '관리자 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+
     clearAttempt(clientIP);
 
-    // ✅ 세션 토큰 생성
     const sessionToken = Buffer.from(
       JSON.stringify({
         authenticated: true,
+        userId: loginData.user.id,
         timestamp: Date.now(),
-        expiry: Date.now() + 30 * 60 * 1000, // 30분
+        expiry: Date.now() + SESSION_MAX_AGE_SECONDS * 1000,
       })
     ).toString('base64');
 
     const response = NextResponse.json(
-      { success: true, message: '인증 성공', sessionToken },
+      { success: true, message: '인증 성공' },
       { status: 200 }
     );
 
-    // ✅ HttpOnly 쿠키 설정
     response.cookies.set('admin_session', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 30 * 60,
+      maxAge: SESSION_MAX_AGE_SECONDS,
       path: '/',
     });
 
     return response;
   } catch (error) {
-    console.error('비밀번호 검증 중 오류:', error);
+    console.error('관리자 인증 중 오류:', error);
     return NextResponse.json(
       { success: false, message: '서버 오류가 발생했습니다.' },
       { status: 500 }
