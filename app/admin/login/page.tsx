@@ -29,6 +29,7 @@ export default function AdminLoginPage() {
       });
 
       if (loginError || !loginData.user) {
+        console.error('Supabase login failed:', loginError);
         alert('로그인 정보가 올바르지 않습니다.');
         return;
       }
