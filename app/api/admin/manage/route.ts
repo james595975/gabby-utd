@@ -5,8 +5,6 @@ import { getSupabaseConfig } from '@/utils/supabase/config';
 
 const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
 const RESOURCES = ['matches', 'schedules', 'news', 'players', 'messages'] as const;
-const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
-const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg';
 
 type Resource = (typeof RESOURCES)[number];
 
@@ -94,8 +92,8 @@ function sanitizeResourcePayload(resource: Resource, payload: Record<string, unk
     return {
       opponent: String(payload.opponent || '').trim(),
       match_date: String(payload.match_date || '').trim() || new Date().toISOString().slice(0, 10),
-      home_logo: String(payload.home_logo || '').trim() || DEFAULT_HOME_LOGO,
-      away_logo: String(payload.away_logo || '').trim() || DEFAULT_AWAY_LOGO,
+      home_logo: String(payload.home_logo || '').trim() || null,
+      away_logo: String(payload.away_logo || '').trim() || null,
       location: String(payload.location || '').trim() || null,
       match_type: String(payload.match_type || '공식전').trim(),
       note: String(payload.note || '').trim() || null,
