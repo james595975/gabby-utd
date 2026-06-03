@@ -205,23 +205,33 @@ export default function Home() {
       }
     };
     const fetchNextSchedule = async () => {
-      try {
-        const todayDate = new Date().toISOString().slice(0, 10);
-        const { data, error } = await supabase
-          .from('schedules')
-          .select('*')
-          .gte('match_date', todayDate)
-          .order('match_date', { ascending: true })
-          .limit(1);
-        if (data && data.length > 0 && !error) {
-          setNextSchedule(data[0]);
-        }
-      } catch (e) {
-        console.error("Schedule fetch error on home:", e);
-      } finally {
-        setScheduleLoading(false);
-      }
-    };
+  try {
+    const todayDate = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('schedules')
+      .select('*')
+      .gte('match_date', todayDate)
+      .order('match_date', { ascending: true })
+      .limit(1);
+
+    if (data && data.length > 0 && !error) {
+      const rawSchedule = data[0];
+
+      // 2. 로고가 없거나 빈 문자열일 경우 기본 로고로 대체(Fallback) 처리
+      const safeSchedule = {
+        ...rawSchedule,
+        home_logo: rawSchedule.home_logo?.trim() ? rawSchedule.home_logo : DEFAULT_HOME_LOGO,
+        away_logo: rawSchedule.away_logo?.trim() ? rawSchedule.away_logo : DEFAULT_AWAY_LOGO,
+      };
+
+      setNextSchedule(safeSchedule);
+    }
+  } catch (e) {
+    console.error("Schedule fetch error on home:", e);
+  } finally {
+    setScheduleLoading(false);
+  }
+};
     const fetchFormation = async () => {
       try {
         const { data, error } = await supabase
