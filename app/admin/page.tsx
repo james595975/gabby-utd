@@ -114,7 +114,7 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+    const adminPassword = process.env.ADMIN_PASSWORD;
     if (password === adminPassword) {
       localStorage.setItem('gb_admin_authenticated', 'true');
       setIsAuthenticated(true);
