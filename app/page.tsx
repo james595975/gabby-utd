@@ -42,11 +42,10 @@ interface ScheduleItem {
   id: number;
   opponent: string;
   opponent_logo?: string | null;
+  away_logo?: string | null;
   match_date: string;
   location?: string | null;
   match_type?: string | null;
-  home_logo?: string; 
-  away_logo?: string; 
   note?: string | null;
 }
 
@@ -219,15 +218,10 @@ export default function Home() {
 
        if (data && data.length > 0 && !error) {
          const rawSchedule = data[0];
-
-        // 2. 로고가 없거나 빈 문자열일 경우 기본 로고로 대체(Fallback) 처리
-         const safeSchedule = {
+         setNextSchedule({
            ...rawSchedule,
-           home_logo: rawSchedule.home_logo?.trim() ? rawSchedule.home_logo : DEFAULT_HOME_LOGO,
-           away_logo: rawSchedule.away_logo?.trim() ? rawSchedule.away_logo : DEFAULT_AWAY_LOGO,
-         };
-
-         setNextSchedule(safeSchedule);
+           opponent_logo: rawSchedule.opponent_logo?.trim() || rawSchedule.away_logo?.trim() || DEFAULT_AWAY_LOGO,
+         });
        }
      } catch (e) {
        console.error("Schedule fetch error on home:", e);
