@@ -85,6 +85,12 @@ function PlayerDot({ number, name, isGK = false }: PlayerDotProps) {
     </div>
   );
 }
+
+function cleanLogoUrl(value: string | null | undefined, fallback: string) {
+  const url = String(value || '').replace(/\s+/g, '').trim();
+  return url.startsWith('http') ? url : fallback;
+}
+
 const FORMATION_STYLES: Record<string, Record<number, { top: string; left: string }>> = {
   '4-4-2': {
     1: { top: '88%', left: '50%' },   // GK
@@ -220,7 +226,7 @@ export default function Home() {
          const rawSchedule = data[0];
          setNextSchedule({
            ...rawSchedule,
-           opponent_logo: rawSchedule.opponent_logo?.trim() || rawSchedule.away_logo?.trim() || DEFAULT_AWAY_LOGO,
+           opponent_logo: cleanLogoUrl(rawSchedule.opponent_logo || rawSchedule.away_logo, DEFAULT_AWAY_LOGO),
          });
        }
      } catch (e) {
@@ -396,9 +402,7 @@ export default function Home() {
   const displayScheduleDate = nextSchedule?.match_date
     ? new Date(nextSchedule.match_date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
     : '';
-  const scheduleAwayLogoUrl = nextSchedule?.opponent_logo && nextSchedule.opponent_logo.startsWith('http')
-    ? nextSchedule.opponent_logo.trim()
-    : DEFAULT_AWAY_LOGO;
+  const scheduleAwayLogoUrl = cleanLogoUrl(nextSchedule?.opponent_logo, DEFAULT_AWAY_LOGO);
 
   return (
     <div className="bg-[#050505] text-white min-h-screen font-sans antialiased selection:bg-[#ff00ff]/30 selection:text-white overflow-x-hidden">
@@ -533,7 +537,15 @@ export default function Home() {
                 <div className="flex flex-col items-center justify-center p-8 text-center">
                   <div className="w-20 h-20 rounded-full border border-white/10 bg-black/40 overflow-hidden mb-4">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={scheduleAwayLogoUrl} alt={nextSchedule.opponent} className="w-full h-full object-cover p-1" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AWAY_LOGO; }} />
+                    <img
+                      src={scheduleAwayLogoUrl}
+                      alt={nextSchedule.opponent}
+                      className="w-full h-full object-cover p-1"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = DEFAULT_AWAY_LOGO;
+                      }}
+                    />
                   </div>
                   <p className="text-lg font-black text-white">{nextSchedule.opponent}</p>
                   <p className="text-[10px] font-bold text-gray-500 mt-1">AWAY</p>

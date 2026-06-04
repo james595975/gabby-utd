@@ -16,6 +16,10 @@ function json(status: number, body: Record<string, unknown>) {
   return NextResponse.json(body, { status });
 }
 
+function cleanUrl(value: unknown) {
+  return String(value || '').replace(/\s+/g, '').trim() || null;
+}
+
 async function getAdminContext(request: NextRequest) {
   const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
   const sessionClient = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -91,7 +95,7 @@ function sanitizeResourcePayload(resource: Resource, payload: Record<string, unk
   if (resource === 'schedules') {
     return {
       opponent: String(payload.opponent || '').trim(),
-      opponent_logo: String(payload.opponent_logo || '').trim() || null,
+      opponent_logo: cleanUrl(payload.opponent_logo),
       match_date: String(payload.match_date || '').trim() || new Date().toISOString().slice(0, 10),
       location: String(payload.location || '').trim() || null,
       match_type: String(payload.match_type || '공식전').trim(),
