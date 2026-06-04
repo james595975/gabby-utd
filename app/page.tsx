@@ -41,6 +41,7 @@ interface NewsItem {
 interface ScheduleItem {
   id: number;
   opponent: string;
+  opponent_logo?: string | null;
   match_date: string;
   location?: string | null;
   match_type?: string | null;
@@ -401,6 +402,9 @@ export default function Home() {
   const displayScheduleDate = nextSchedule?.match_date
     ? new Date(nextSchedule.match_date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
     : '';
+  const scheduleAwayLogoUrl = nextSchedule?.opponent_logo && nextSchedule.opponent_logo.startsWith('http')
+    ? nextSchedule.opponent_logo.trim()
+    : DEFAULT_AWAY_LOGO;
 
   return (
     <div className="bg-[#050505] text-white min-h-screen font-sans antialiased selection:bg-[#ff00ff]/30 selection:text-white overflow-x-hidden">
@@ -533,8 +537,9 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-20 h-20 rounded-full border border-white/10 bg-black/40 flex items-center justify-center mb-4 text-3xl font-black text-gray-500">
-                    VS
+                  <div className="w-20 h-20 rounded-full border border-white/10 bg-black/40 overflow-hidden mb-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={scheduleAwayLogoUrl} alt={nextSchedule.opponent} className="w-full h-full object-cover p-1" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AWAY_LOGO; }} />
                   </div>
                   <p className="text-lg font-black text-white">{nextSchedule.opponent}</p>
                   <p className="text-[10px] font-bold text-gray-500 mt-1">AWAY</p>
