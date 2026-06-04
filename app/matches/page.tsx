@@ -17,8 +17,19 @@ interface MatchData {
   match_result?: string;
 }
 
+interface GoalData {
+  id: number;
+  match_id: number;
+  scorer_name: string;
+  minute?: number | null;
+  team: 'home' | 'away';
+  note?: string | null;
+}
+
 export default function MatchesPage() {
   const [matches, setMatches] = useState<MatchData[]>([]);
+  const [goals, setGoals] = useState<GoalData[]>([]);
+  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   
   const [typeFilter, setTypeFilter] = useState<'all' | 'official' | 'practice'>('all');
@@ -30,14 +41,13 @@ export default function MatchesPage() {
   async function fetchMatches() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*')
-        .order('id', { ascending: false }); // 최신 순 정렬
+      const [matchesResult, goalsResult] = await Promise.all([
+        supabase.from('matches').select('*').order('id', { ascending: false }),
+        supabase.from('match_goals').select('*').order('minute', { ascending: true, nullsFirst: false }).order('id', { ascending: true }),
+      ]);
 
-      if (!error && data) {
-        setMatches(data);
-      }
+      if (!matchesResult.error && matchesResult.data) setMatches(matchesResult.data);
+      if (!goalsResult.error && goalsResult.data) setGoals(goalsResult.data);
     } catch (err) {
       console.error('Fetch error:', err);
     } finally {
@@ -154,7 +164,12 @@ export default function MatchesPage() {
               const displayDate = match.date ? match.date.trim() : '날짜 미지정';
 
               return (
-                <div key={match.id} className="group bg-[#0a0a0a] border border-gray-800/60 rounded-2xl p-4 flex items-center justify-between shadow-lg hover:border-gray-500/50 hover:bg-[#111] transition-all duration-300">
+                <article key={match.id} className="group bg-[#0a0a0a] border border-gray-800/60 rounded-2xl shadow-lg hover:border-gray-500/50 hover:bg-[#111] transition-all duration-300 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMatchId(selectedMatchId === match.id ? null : match.id)}
+                  className="flex w-full items-center justify-between p-4 text-left"
+                >
                   <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center gap-x-3 min-w-[100px]">
                     <span className={`text-[10px] font-black px-2.5 py-0.5 rounded text-center border w-fit shadow-sm ${
                       match.match_result === '승리' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
@@ -192,7 +207,31 @@ export default function MatchesPage() {
                       <span className="text-xs sm:text-sm font-bold text-gray-400 group-hover:text-gray-300 transition-colors">{match.away_team || '상대 팀'}</span>
                     </div>
                   </div>
-                </div>
+                </button>
+                {selectedMatchId === match.id && (
+                  <div className="border-t border-white/10 bg-black/30 px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="text-sm font-black text-white">경기 상세</h2>
+                      <span className="text-[10px] font-bold text-gray-500">득점 기록</span>
+                    </div>
+                    {goals.filter((goal) => goal.match_id === match.id).length === 0 ? (
+                      <p className="mt-4 rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-xs text-gray-500">등록된 득점 기록이 없습니다.</p>
+                    ) : (
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        {goals.filter((goal) => goal.match_id === match.id).map((goal) => (
+                          <div key={goal.id} className="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
+                            <p className="text-sm font-black text-white">
+                              {goal.minute ? `${goal.minute}' ` : ''}{goal.scorer_name}
+                            </p>
+                            <p className="mt-1 text-[11px] font-bold text-gray-500">{goal.team === 'away' ? match.away_team || '상대 팀' : match.home_team || 'Gabby UTD'}</p>
+                            {goal.note && <p className="mt-2 text-xs text-gray-400">{goal.note}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                </article>
               );
             })
           )}

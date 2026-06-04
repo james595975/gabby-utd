@@ -44,6 +44,7 @@ interface ScheduleItem {
   opponent_logo?: string | null;
   away_logo?: string | null;
   match_date: string;
+  match_time?: string | null;
   location?: string | null;
   match_type?: string | null;
   note?: string | null;
@@ -435,11 +436,13 @@ export default function Home() {
           </div>
 
           {/* 우측 네비게이션 메뉴 링크 */}
-          <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0 select-none">
+          <div className="flex flex-wrap justify-end gap-3 sm:gap-5 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0 select-none">
             <div onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors cursor-pointer">메인 홈</div>
+            <div onClick={() => scrollToSection('schedule')} className="hover:text-white transition-colors cursor-pointer">일정</div>
             <div onClick={() => scrollToSection('lineup')} className="hover:text-white text-[#f2d272] transition-colors cursor-pointer">라인업</div>
             <div onClick={() => scrollToSection('players')} className="hover:text-white transition-colors cursor-pointer">선수단</div>
             <Link href="/matches" className="hover:text-white transition-colors">MATCHES</Link>
+            <div onClick={() => scrollToSection('contact')} className="hover:text-white transition-colors cursor-pointer">문의</div>
           </div>
         </div>
       </nav>
@@ -530,8 +533,17 @@ export default function Home() {
                     {nextSchedule.match_type || '공식전'}
                   </span>
                   <p className="mt-4 text-xl sm:text-2xl font-black text-white">{displayScheduleDate}</p>
+                  {nextSchedule.match_time && <p className="mt-1 text-sm font-black text-[#f2d272]">{nextSchedule.match_time.slice(0, 5)} KICK OFF</p>}
                   <p className="mt-2 text-sm font-bold text-gray-400">{nextSchedule.location || '장소 미정'}</p>
                   {nextSchedule.note && <p className="mt-4 max-w-xs text-xs leading-relaxed text-gray-500 break-keep">{nextSchedule.note}</p>}
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
+                    <Link href="/schedule" className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
+                      전체 일정
+                    </Link>
+                    <button onClick={() => scrollToSection('contact')} className="rounded-full bg-[#f2d272] px-4 py-2 text-xs font-black text-black hover:bg-white transition-colors">
+                      참가 문의
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -695,6 +707,11 @@ export default function Home() {
                     }`}>
                       {player.name}
                     </div>
+                    {player.back_number && (
+                      <span className="mb-3 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-black text-white/80">
+                        No. {player.back_number}
+                      </span>
+                    )}
                     <span className={`text-xs px-3.5 py-1 rounded-full font-bold border tracking-wider shadow-inner ${posStyle.badgeClass}`}>
                       {posStyle.label}
                     </span>

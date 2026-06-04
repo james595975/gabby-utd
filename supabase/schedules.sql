@@ -7,6 +7,7 @@ create table if not exists public.schedules (
   opponent_logo text default 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg',
   away_logo text default 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg',
   match_date date not null,
+  match_time time,
   location text,
   match_type text not null default '공식전',
   note text,
@@ -18,6 +19,9 @@ add column if not exists opponent_logo text;
 
 alter table public.schedules
 add column if not exists away_logo text;
+
+alter table public.schedules
+add column if not exists match_time time;
 
 alter table public.schedules
 alter column opponent_logo set default 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg';

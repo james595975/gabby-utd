@@ -28,12 +28,22 @@ interface NewsItem {
   created_at?: string;
 }
 
+interface GoalItem {
+  id: number;
+  match_id: number;
+  scorer_name: string;
+  minute?: number | null;
+  team: 'home' | 'away';
+  note?: string | null;
+}
+
 interface ScheduleItem {
   id: number;
   opponent: string;
   opponent_logo?: string | null;
   away_logo?: string | null;
   match_date: string;
+  match_time?: string | null;
   location?: string | null;
   match_type?: string | null;
   note?: string | null;
@@ -58,6 +68,7 @@ interface MessageItem {
 
 interface AdminData {
   matches: MatchItem[];
+  match_goals: GoalItem[];
   schedules: ScheduleItem[];
   news: NewsItem[];
   players: PlayerItem[];
@@ -66,6 +77,7 @@ interface AdminData {
 
 const emptyData: AdminData = {
   matches: [],
+  match_goals: [],
   schedules: [],
   news: [],
   players: [],
@@ -106,8 +118,17 @@ const defaultSchedule = {
   opponent: '',
   opponent_logo: '',
   match_date: today(),
+  match_time: '',
   location: '',
   match_type: '공식전',
+  note: '',
+};
+
+const defaultGoal = {
+  match_id: '',
+  scorer_name: '',
+  minute: '',
+  team: 'home',
   note: '',
 };
 
@@ -132,6 +153,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<{ resource: Tab; id: number } | null>(null);
   const [matchForm, setMatchForm] = useState<Record<string, string | number | boolean | null>>(defaultMatch);
+  const [goalForm, setGoalForm] = useState<Record<string, string | number | null>>(defaultGoal);
   const [scheduleForm, setScheduleForm] = useState<Record<string, string | null>>(defaultSchedule);
   const [newsForm, setNewsForm] = useState<Record<string, string | null>>(defaultNews);
   const [playerForm, setPlayerForm] = useState<Record<string, string | number | null>>(defaultPlayer);
@@ -178,6 +200,7 @@ export default function AdminPage() {
   function resetForms() {
     setEditing(null);
     setMatchForm({ ...defaultMatch, date: today() });
+    setGoalForm({ ...defaultGoal, match_id: data.matches[0]?.id || '' });
     setScheduleForm({ ...defaultSchedule, match_date: today() });
     setNewsForm(defaultNews);
     setPlayerForm(defaultPlayer);
@@ -203,7 +226,29 @@ export default function AdminPage() {
     }
   }
 
-  async function deleteResource(resource: Tab, id: number, label: string) {
+  async function saveGoal() {
+    if (!goalForm.match_id || !goalForm.scorer_name) {
+      alert('경기와 득점자를 입력해 주세요.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await requestAdmin('POST', {
+        resource: 'match_goals',
+        data: goalForm,
+      });
+      setGoalForm({ ...defaultGoal, match_id: goalForm.match_id });
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : '득점 기록 저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteResource(resource: Tab | 'match_goals', id: number, label: string) {
     if (!confirm(`${label} 항목을 삭제할까요?`)) return;
     setSaving(true);
     try {
@@ -240,6 +285,7 @@ export default function AdminPage() {
       opponent: item.opponent || '',
       opponent_logo: item.opponent_logo || item.away_logo || '',
       match_date: item.match_date || today(),
+      match_time: item.match_time || '',
       location: item.location || '',
       match_type: item.match_type || '공식전',
       note: item.note || '',
@@ -309,6 +355,7 @@ export default function AdminPage() {
           <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
             {activeTab === 'matches' && (
               <>
+                <div className="space-y-5">
                 <Panel title={editing?.resource === 'matches' ? '경기 수정' : '경기 등록'}>
                   <Field label="홈 팀"><Input value={matchForm.home_team} onChange={(v) => setMatchForm({ ...matchForm, home_team: v })} /></Field>
                   <Field label="원정 팀"><Input value={matchForm.away_team} onChange={(v) => setMatchForm({ ...matchForm, away_team: v })} /></Field>
@@ -328,17 +375,57 @@ export default function AdminPage() {
                   </label>
                   <ActionButtons saving={saving} editing={editing?.resource === 'matches'} onCancel={resetForms} onSave={() => saveResource('matches')} />
                 </Panel>
+                <Panel title="득점 기록 등록">
+                  <Field label="경기 선택">
+                    <select value={String(goalForm.match_id)} onChange={(e) => setGoalForm({ ...goalForm, match_id: e.target.value })} className={selectClass}>
+                      <option value="">경기 선택</option>
+                      {data.matches.map((match) => (
+                        <option key={match.id} value={match.id}>
+                          {match.date || '-'} · {match.home_team || 'Gabby UTD'} vs {match.away_team || '상대 팀'}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="득점자"><Input value={goalForm.scorer_name} onChange={(v) => setGoalForm({ ...goalForm, scorer_name: v })} /></Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="득점 시간(분)"><Input type="number" value={goalForm.minute} onChange={(v) => setGoalForm({ ...goalForm, minute: v })} /></Field>
+                    <Field label="팀">
+                      <select value={String(goalForm.team)} onChange={(e) => setGoalForm({ ...goalForm, team: e.target.value })} className={selectClass}>
+                        <option value="home">Gabby UTD</option>
+                        <option value="away">상대팀</option>
+                      </select>
+                    </Field>
+                  </div>
+                  <Field label="메모"><Input value={goalForm.note} onChange={(v) => setGoalForm({ ...goalForm, note: v })} /></Field>
+                  <button type="button" disabled={saving} onClick={saveGoal} className="w-full rounded-xl bg-[#f2d272] px-4 py-3 text-sm font-black text-black hover:bg-white disabled:opacity-50 transition-colors">
+                    {saving ? '저장 중...' : '득점 기록 추가'}
+                  </button>
+                </Panel>
+                </div>
                 <Panel title="경기 목록" wide>
                   <div className="space-y-3">
-                    {data.matches.map((match) => (
+                    {data.matches.map((match) => {
+                      const goals = data.match_goals.filter((goal) => goal.match_id === match.id);
+                      return (
                       <Row key={match.id}>
                         <div>
                           <p className="text-sm font-black">{match.home_team || 'Gabby UTD'} {match.home_score} : {match.away_score} {match.away_team || '상대 팀'}</p>
                           <p className="text-xs text-gray-500 mt-1">{match.date || '-'} · {match.match_result || '무승부'} · {match.is_practice ? '친선전' : '공식전'}</p>
+                          {goals.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {goals.map((goal) => (
+                                <span key={goal.id} className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-bold text-gray-300">
+                                  {goal.minute ? `${goal.minute}' ` : ''}{goal.scorer_name}{goal.team === 'away' ? ' · 상대' : ''}
+                                  <button onClick={() => deleteResource('match_goals', goal.id, '득점 기록')} className="ml-2 text-red-300 hover:text-red-200">삭제</button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <RowActions onEdit={() => editMatch(match)} onDelete={() => deleteResource('matches', match.id, '경기')} />
                       </Row>
-                    ))}
+                      );
+                    })}
                   </div>
                 </Panel>
               </>
@@ -349,7 +436,10 @@ export default function AdminPage() {
                 <Panel title={editing?.resource === 'schedules' ? '일정 수정' : '일정 등록'}>
                   <Field label="상대 팀"><Input value={scheduleForm.opponent} onChange={(v) => setScheduleForm({ ...scheduleForm, opponent: v })} /></Field>
                   <Field label="상대팀 로고 URL"><Input value={scheduleForm.opponent_logo} onChange={(v) => setScheduleForm({ ...scheduleForm, opponent_logo: v })} /></Field>
-                  <Field label="경기 날짜"><Input type="date" value={scheduleForm.match_date} onChange={(v) => setScheduleForm({ ...scheduleForm, match_date: v })} /></Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="경기 날짜"><Input type="date" value={scheduleForm.match_date} onChange={(v) => setScheduleForm({ ...scheduleForm, match_date: v })} /></Field>
+                    <Field label="경기 시간"><Input type="time" value={scheduleForm.match_time} onChange={(v) => setScheduleForm({ ...scheduleForm, match_time: v })} /></Field>
+                  </div>
                   <Field label="장소"><Input value={scheduleForm.location} onChange={(v) => setScheduleForm({ ...scheduleForm, location: v })} /></Field>
                   <Field label="경기 종류">
                     <select value={String(scheduleForm.match_type)} onChange={(e) => setScheduleForm({ ...scheduleForm, match_type: e.target.value })} className={selectClass}>
@@ -380,7 +470,7 @@ export default function AdminPage() {
                           </div>
                           <div className="min-w-0">
                           <p className="text-sm font-black">Gabby UTD vs {schedule.opponent || '상대 팀'}</p>
-                          <p className="text-xs text-gray-500 mt-1">{schedule.match_date || '-'} · {schedule.match_type || '공식전'} · {schedule.location || '장소 미정'}</p>
+                          <p className="text-xs text-gray-500 mt-1">{schedule.match_date || '-'} {schedule.match_time ? `· ${schedule.match_time.slice(0, 5)}` : ''} · {schedule.match_type || '공식전'} · {schedule.location || '장소 미정'}</p>
                           {schedule.note && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{schedule.note}</p>}
                           </div>
                         </div>
