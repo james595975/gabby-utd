@@ -427,7 +427,7 @@ export default function Home() {
           </div>
 
           {/* 스폰서 영역 */}
-          <div className="hidden md:flex items-center gap-2.5 text-[11px] font-bold text-gray-400 bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5 shadow-inner">
+          <div className="hidden lg:flex items-center gap-2.5 text-[11px] font-bold text-gray-400 bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5 shadow-inner">
             <span className="text-gray-400 text-[10px] tracking-wide font-medium whitespace-nowrap">Gabby UTD Sponsored by</span>
             <span className="w-px h-3 bg-white/10"></span>
             <div className="flex items-center gap-1.5">
@@ -436,13 +436,12 @@ export default function Home() {
           </div>
 
           {/* 우측 네비게이션 메뉴 링크 */}
-          <div className="flex flex-wrap justify-end gap-3 sm:gap-5 text-xs sm:text-sm font-bold text-gray-400 flex-shrink-0 select-none">
-            <div onClick={() => scrollToSection('hero')} className="hover:text-white transition-colors cursor-pointer">메인 홈</div>
-            <div onClick={() => scrollToSection('schedule')} className="hover:text-white transition-colors cursor-pointer">일정</div>
-            <div onClick={() => scrollToSection('lineup')} className="hover:text-white text-[#f2d272] transition-colors cursor-pointer">라인업</div>
-            <div onClick={() => scrollToSection('players')} className="hover:text-white transition-colors cursor-pointer">선수단</div>
-            <Link href="/matches" className="hover:text-white transition-colors">MATCHES</Link>
-            <div onClick={() => scrollToSection('contact')} className="hover:text-white transition-colors cursor-pointer">문의</div>
+          <div className="flex flex-wrap justify-end gap-2 sm:gap-3 text-xs font-bold text-gray-400 flex-shrink-0 select-none">
+            <button type="button" onClick={() => scrollToSection('hero')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">홈</button>
+            <button type="button" onClick={() => scrollToSection('schedule')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">일정</button>
+            <button type="button" onClick={() => scrollToSection('lineup')} className="rounded-full bg-[#f2d272]/10 px-2.5 py-1.5 text-[#f2d272] hover:bg-[#f2d272]/15 transition-colors">라인업</button>
+            <button type="button" onClick={() => scrollToSection('players')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">선수단</button>
+            <button type="button" onClick={() => scrollToSection('contact')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">문의</button>
           </div>
         </div>
       </nav>
@@ -469,15 +468,17 @@ export default function Home() {
             열정과 함께, 끝까지 승리를 위하여
           </p>
 
-          <button 
-            onClick={() => scrollToSection('about')}
-            className="bg-[#f2d272] text-black font-bold py-3.5 px-8 rounded-full flex items-center gap-2 hover:bg-white transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(242,210,114,0.3)]"
-          >
-            구단 알아보기 
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => scrollToSection('schedule')}
+              className="bg-[#f2d272] text-black font-bold py-3.5 px-7 rounded-full hover:bg-white transition-all active:scale-95 shadow-[0_0_20px_rgba(242,210,114,0.3)]"
+            >
+              다음 경기 보기
+            </button>
+            <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-7 py-3.5 text-sm font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
+              경기 기록
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -540,6 +541,9 @@ export default function Home() {
                     <Link href="/schedule" className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
                       전체 일정
                     </Link>
+                    <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
+                      경기 기록
+                    </Link>
                     <button onClick={() => scrollToSection('contact')} className="rounded-full bg-[#f2d272] px-4 py-2 text-xs font-black text-black hover:bg-white transition-colors">
                       참가 문의
                     </button>
@@ -574,7 +578,7 @@ export default function Home() {
       <section id="news" className="bg-[#050505] w-full py-20 relative z-10">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">📰 최근 소식</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">최근 소식</h2>
             <Link href="/news" className="text-xs font-bold text-gray-400 hover:text-white transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
               전체보기 ➔
             </Link>
@@ -626,7 +630,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-8 text-center sm:text-left">
             <span className="text-[10px] text-green-400 font-mono font-bold block uppercase tracking-widest">Starting Lineup</span>
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">⚽ 금주 선발 라인업</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">금주 선발 라인업</h2>
           </div>
           {(() => {
             const currentCoords = FORMATION_STYLES[formation] || FORMATION_STYLES['4-4-2'];
@@ -674,7 +678,7 @@ export default function Home() {
       <section id="players" className="bg-gradient-to-b from-[#050505] to-[#0a0a0a] w-full py-20 border-t border-gray-800/30">
         <div className="max-w-5xl mx-auto px-4">
           <h2 className="text-2xl sm:text-3xl font-black text-center flex justify-center items-center gap-2 mb-3 text-white">
-            👥 선수 명단
+            선수 명단
           </h2>
           <div className="flex flex-wrap justify-center items-center gap-4 text-xs text-gray-400 mb-8 font-semibold bg-white/5 py-2 px-6 rounded-full w-fit mx-auto border border-white/5">
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500" /> 스트라이커</span>
@@ -731,13 +735,13 @@ export default function Home() {
         <div className="max-w-3xl mx-auto px-4 relative z-10">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
-              🏆 최근 경기 결과
+              최근 경기 결과
             </h2>
             <Link 
               href="/matches" 
               className="text-xs font-black text-[#f2d272] hover:text-white bg-black/30 hover:bg-black/50 border border-gray-700 px-3 py-2 rounded-xl transition-all flex items-center gap-1 shadow-md"
             >
-              📊 매치 더 보기 ➔
+              경기 기록 보기
             </Link>
           </div>
 
