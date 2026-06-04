@@ -178,7 +178,10 @@ export default function Home() {
 
   useEffect(() => {
     const fetchPlayers = async () => {
-      const { data, error } = await supabase.from('players').select('*').order('id', { ascending: true });
+      const { data, error } = await supabase
+        .from('players')
+        .select('id,name,position,back_number,lineup_spot')
+        .order('id', { ascending: true });
       if (!error && data) setPlayers(data);
     };
 
@@ -186,7 +189,7 @@ export default function Home() {
       try {
         const { data, error } = await supabase
           .from('news')
-          .select('*')
+          .select('id,title,content,image_url,tag,created_at')
           .order('id', { ascending: false })
           .limit(2);
         if (!error && data) setNews(data);
@@ -201,7 +204,7 @@ export default function Home() {
       try {
         const { data, error } = await supabase
           .from('matches')
-          .select('*')
+          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result')
           .order('id', { ascending: false })
           .limit(1);
         if (data && data.length > 0 && !error) {
@@ -218,7 +221,7 @@ export default function Home() {
          const todayDate = new Date().toISOString().slice(0, 10);
          const { data, error } = await supabase
         .from('schedules')
-        .select('*')
+        .select('id,opponent,opponent_logo,away_logo,match_date,match_time,location,match_type,note')
         .gte('match_date', todayDate)
         .order('match_date', { ascending: true })
         .limit(1);

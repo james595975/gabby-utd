@@ -33,7 +33,7 @@ export default function SchedulePage() {
       try {
         const { data, error } = await supabase
           .from('schedules')
-          .select('*')
+          .select('id,opponent,opponent_logo,away_logo,match_date,match_time,location,match_type,note')
           .order('match_date', { ascending: true })
           .order('match_time', { ascending: true, nullsFirst: false });
 
