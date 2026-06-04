@@ -118,6 +118,13 @@ const defaultPlayer = {
   lineup_spot: '',
 };
 
+const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg';
+
+function cleanLogoUrl(value?: string | null) {
+  const url = String(value || '').replace(/\s+/g, '').trim();
+  return url.startsWith('http') ? url : DEFAULT_AWAY_LOGO;
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('matches');
   const [data, setData] = useState<AdminData>(emptyData);
@@ -358,9 +365,17 @@ export default function AdminPage() {
                       <Row key={schedule.id}>
                         <div className="flex min-w-0 items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/40 text-xs font-black text-gray-500">
-                            {schedule.opponent_logo ? (
+                            {schedule.opponent_logo || schedule.away_logo ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={schedule.opponent_logo} alt={schedule.opponent} className="h-full w-full object-cover p-0.5" />
+                              <img
+                                src={cleanLogoUrl(schedule.opponent_logo || schedule.away_logo)}
+                                alt={schedule.opponent}
+                                className="h-full w-full object-cover p-0.5"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = DEFAULT_AWAY_LOGO;
+                                }}
+                              />
                             ) : 'VS'}
                           </div>
                           <div className="min-w-0">
