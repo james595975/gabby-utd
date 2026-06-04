@@ -96,7 +96,7 @@ export default function AdminLineup() {
       // 2. 선수 명단 데이터 로드
       const { data: pData, error: pError } = await supabase
         .from('players')
-        .select('*')
+        .select('id,name,position,back_number,lineup_spot')
         .order('name', { ascending: true });
 
       if (!pError && pData) {

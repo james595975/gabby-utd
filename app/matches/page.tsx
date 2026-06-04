@@ -42,8 +42,15 @@ export default function MatchesPage() {
     try {
       setLoading(true);
       const [matchesResult, goalsResult] = await Promise.all([
-        supabase.from('matches').select('*').order('id', { ascending: false }),
-        supabase.from('match_goals').select('*').order('minute', { ascending: true, nullsFirst: false }).order('id', { ascending: true }),
+        supabase
+          .from('matches')
+          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result')
+          .order('id', { ascending: false }),
+        supabase
+          .from('match_goals')
+          .select('id,match_id,scorer_name,minute,team,note')
+          .order('minute', { ascending: true, nullsFirst: false })
+          .order('id', { ascending: true }),
       ]);
 
       if (!matchesResult.error && matchesResult.data) setMatches(matchesResult.data);

@@ -37,7 +37,7 @@ export default function NewsPage() {
       try {
         const { data, error } = await supabase
           .from('news')
-          .select('*')
+          .select('id,title,content,image_url,link_url,tag,created_at')
           .order('id', { ascending: false });
 
         if (!error && data) {
