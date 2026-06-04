@@ -4,7 +4,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseConfig } from '@/utils/supabase/config';
 
 const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
-const RESOURCES = ['matches', 'schedules', 'news', 'players', 'messages'] as const;
+const RESOURCES = ['matches', 'match_goals', 'schedules', 'news', 'players', 'messages'] as const;
 
 type Resource = (typeof RESOURCES)[number];
 
@@ -97,8 +97,19 @@ function sanitizeResourcePayload(resource: Resource, payload: Record<string, unk
       opponent: String(payload.opponent || '').trim(),
       opponent_logo: cleanUrl(payload.opponent_logo),
       match_date: String(payload.match_date || '').trim() || new Date().toISOString().slice(0, 10),
+      match_time: String(payload.match_time || '').trim() || null,
       location: String(payload.location || '').trim() || null,
       match_type: String(payload.match_type || '공식전').trim(),
+      note: String(payload.note || '').trim() || null,
+    };
+  }
+
+  if (resource === 'match_goals') {
+    return {
+      match_id: Number(payload.match_id),
+      scorer_name: String(payload.scorer_name || '').trim(),
+      minute: payload.minute === '' || payload.minute == null ? null : Number(payload.minute),
+      team: String(payload.team || 'home').trim() === 'away' ? 'away' : 'home',
       note: String(payload.note || '').trim() || null,
     };
   }
@@ -119,8 +130,9 @@ export async function GET(request: NextRequest) {
   const context = await getAdminContext(request);
   if (!context.ok) return json(401, { success: false, message: context.message });
 
-  const [matches, schedules, news, players, messages] = await Promise.all([
+  const [matches, matchGoals, schedules, news, players, messages] = await Promise.all([
     context.supabase.from('matches').select('*').order('id', { ascending: false }),
+    context.supabase.from('match_goals').select('*').order('minute', { ascending: true, nullsFirst: false }).order('id', { ascending: true }),
     context.supabase.from('schedules').select('*').order('match_date', { ascending: true }),
     context.supabase.from('news').select('*').order('id', { ascending: false }),
     context.supabase.from('players').select('*').order('back_number', { ascending: true, nullsFirst: false }),
@@ -134,6 +146,7 @@ export async function GET(request: NextRequest) {
     success: true,
     data: {
       matches: matches.data || [],
+      match_goals: matchGoals.error ? [] : matchGoals.data || [],
       schedules: schedules.data || [],
       news: news.data || [],
       players: players.data || [],
