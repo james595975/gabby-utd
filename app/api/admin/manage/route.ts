@@ -91,6 +91,7 @@ function sanitizeResourcePayload(resource: Resource, payload: Record<string, unk
   if (resource === 'schedules') {
     return {
       opponent: String(payload.opponent || '').trim(),
+      opponent_logo: String(payload.opponent_logo || '').trim() || null,
       match_date: String(payload.match_date || '').trim() || new Date().toISOString().slice(0, 10),
       home_logo: String(payload.home_logo || '').trim() || null,
       away_logo: String(payload.away_logo || '').trim() || null,

@@ -31,6 +31,7 @@ interface NewsItem {
 interface ScheduleItem {
   id: number;
   opponent: string;
+  opponent_logo?: string | null;
   match_date: string;
   location?: string | null;
   match_type?: string | null;
@@ -102,6 +103,7 @@ const defaultNews = {
 
 const defaultSchedule = {
   opponent: '',
+  opponent_logo: '',
   match_date: today(),
   location: '',
   match_type: '공식전',
@@ -228,6 +230,7 @@ export default function AdminPage() {
     setEditing({ resource: 'schedules', id: item.id });
     setScheduleForm({
       opponent: item.opponent || '',
+      opponent_logo: item.opponent_logo || '',
       match_date: item.match_date || today(),
       location: item.location || '',
       match_type: item.match_type || '공식전',
@@ -337,6 +340,7 @@ export default function AdminPage() {
               <>
                 <Panel title={editing?.resource === 'schedules' ? '일정 수정' : '일정 등록'}>
                   <Field label="상대 팀"><Input value={scheduleForm.opponent} onChange={(v) => setScheduleForm({ ...scheduleForm, opponent: v })} /></Field>
+                  <Field label="상대팀 로고 URL"><Input value={scheduleForm.opponent_logo} onChange={(v) => setScheduleForm({ ...scheduleForm, opponent_logo: v })} /></Field>
                   <Field label="경기 날짜"><Input type="date" value={scheduleForm.match_date} onChange={(v) => setScheduleForm({ ...scheduleForm, match_date: v })} /></Field>
                   <Field label="장소"><Input value={scheduleForm.location} onChange={(v) => setScheduleForm({ ...scheduleForm, location: v })} /></Field>
                   <Field label="경기 종류">
@@ -351,10 +355,18 @@ export default function AdminPage() {
                   <div className="space-y-3">
                     {data.schedules.map((schedule) => (
                       <Row key={schedule.id}>
-                        <div>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/40 text-xs font-black text-gray-500">
+                            {schedule.opponent_logo ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={schedule.opponent_logo} alt={schedule.opponent} className="h-full w-full object-cover p-0.5" />
+                            ) : 'VS'}
+                          </div>
+                          <div className="min-w-0">
                           <p className="text-sm font-black">Gabby UTD vs {schedule.opponent || '상대 팀'}</p>
                           <p className="text-xs text-gray-500 mt-1">{schedule.match_date || '-'} · {schedule.match_type || '공식전'} · {schedule.location || '장소 미정'}</p>
                           {schedule.note && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{schedule.note}</p>}
+                          </div>
                         </div>
                         <RowActions onEdit={() => editSchedule(schedule)} onDelete={() => deleteResource('schedules', schedule.id, '일정')} />
                       </Row>
