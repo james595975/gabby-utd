@@ -32,6 +32,7 @@ interface ScheduleItem {
   id: number;
   opponent: string;
   opponent_logo?: string | null;
+  away_logo?: string | null;
   match_date: string;
   location?: string | null;
   match_type?: string | null;
@@ -230,7 +231,7 @@ export default function AdminPage() {
     setEditing({ resource: 'schedules', id: item.id });
     setScheduleForm({
       opponent: item.opponent || '',
-      opponent_logo: item.opponent_logo || '',
+      opponent_logo: item.opponent_logo || item.away_logo || '',
       match_date: item.match_date || today(),
       location: item.location || '',
       match_type: item.match_type || '공식전',

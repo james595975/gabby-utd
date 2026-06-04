@@ -5,6 +5,7 @@ create table if not exists public.schedules (
   id bigint generated always as identity primary key,
   opponent text not null,
   opponent_logo text,
+  away_logo text,
   match_date date not null,
   location text,
   match_type text not null default '공식전',
@@ -14,6 +15,9 @@ create table if not exists public.schedules (
 
 alter table public.schedules
 add column if not exists opponent_logo text;
+
+alter table public.schedules
+add column if not exists away_logo text;
 
 alter table public.schedules enable row level security;
 
