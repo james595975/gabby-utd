@@ -159,6 +159,9 @@ export default function MatchesPage() {
             filteredMatches.map((match) => {
               const currentHomeLogo = match.home_logo && match.home_logo.startsWith('http') ? match.home_logo : DEFAULT_HOME_LOGO;
               const currentAwayLogo = match.away_logo && match.away_logo.startsWith('http') ? match.away_logo : DEFAULT_AWAY_LOGO;
+              const matchGoals = goals.filter((goal) => goal.match_id === match.id);
+              const homeGoals = matchGoals.filter((goal) => goal.team !== 'away');
+              const awayGoals = matchGoals.filter((goal) => goal.team === 'away');
               
               // ⚙️ 어드민 입력값을 그대로 쓰고, 비어있을 때만 기본 텍스트 처리
               const displayDate = match.date ? match.date.trim() : '날짜 미지정';
@@ -209,26 +212,69 @@ export default function MatchesPage() {
                   </div>
                 </button>
                 {selectedMatchId === match.id && (
-                  <div className="border-t border-white/10 bg-black/30 px-4 py-4">
-                    <div className="flex items-center justify-between gap-3">
+                  <div className="border-t border-white/10 bg-[#070707] px-4 py-5">
+                    <div className="mb-4 flex items-center justify-between">
                       <h2 className="text-sm font-black text-white">경기 상세</h2>
                       <span className="text-[10px] font-bold text-gray-500">득점 기록</span>
                     </div>
-                    {goals.filter((goal) => goal.match_id === match.id).length === 0 ? (
-                      <p className="mt-4 rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-xs text-gray-500">등록된 득점 기록이 없습니다.</p>
-                    ) : (
-                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                        {goals.filter((goal) => goal.match_id === match.id).map((goal) => (
-                          <div key={goal.id} className="rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
-                            <p className="text-sm font-black text-white">
-                              {goal.minute ? `${goal.minute}' ` : ''}{goal.scorer_name}
-                            </p>
-                            <p className="mt-1 text-[11px] font-bold text-gray-500">{goal.team === 'away' ? match.away_team || '상대 팀' : match.home_team || 'Gabby UTD'}</p>
-                            {goal.note && <p className="mt-2 text-xs text-gray-400">{goal.note}</p>}
+
+                    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111]">
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch border-b border-white/10 bg-[#141414]">
+                        <div className="flex min-w-0 items-center gap-3 p-4">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={currentHomeLogo} alt="Home Logo" className="h-10 w-10 shrink-0 rounded-full border border-white/10 bg-black object-contain p-0.5" onError={(e)=>{(e.target as HTMLImageElement).src=DEFAULT_HOME_LOGO}} />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-white">{match.home_team || 'Gabby UTD'}</p>
+                            <p className="text-[10px] font-bold text-[#f2d272]">HOME</p>
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="flex min-w-[96px] items-center justify-center border-x border-white/10 bg-black/50 px-4">
+                          <span className="text-2xl font-black text-white">{match.home_score}</span>
+                          <span className="mx-2 text-sm font-black text-gray-600">:</span>
+                          <span className="text-2xl font-black text-white">{match.away_score}</span>
+                        </div>
+
+                        <div className="flex min-w-0 items-center justify-end gap-3 p-4 text-right">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-white">{match.away_team || '상대 팀'}</p>
+                            <p className="text-[10px] font-bold text-gray-500">AWAY</p>
+                          </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={currentAwayLogo} alt="Away Logo" className="h-10 w-10 shrink-0 rounded-full border border-white/10 bg-black object-contain p-0.5" onError={(e)=>{(e.target as HTMLImageElement).src=DEFAULT_AWAY_LOGO}} />
+                        </div>
                       </div>
-                    )}
+
+                      {matchGoals.length === 0 ? (
+                        <p className="px-4 py-8 text-center text-xs font-bold text-gray-500">등록된 득점 기록이 없습니다.</p>
+                      ) : (
+                        <div className="grid divide-y divide-white/10 sm:grid-cols-[1fr_auto_1fr] sm:divide-x sm:divide-y-0">
+                          <div className="space-y-2 p-4">
+                            {homeGoals.length === 0 ? (
+                              <p className="py-5 text-center text-xs text-gray-600">득점 기록 없음</p>
+                            ) : homeGoals.map((goal) => (
+                              <GoalLine key={goal.id} goal={goal} align="left" />
+                            ))}
+                          </div>
+
+                          <div className="hidden w-12 flex-col items-center bg-black/35 py-4 sm:flex">
+                            {matchGoals.map((goal) => (
+                              <span key={goal.id} className="mb-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#1b1b1b] text-[10px] font-black text-[#f2d272]">
+                                {goal.minute ? goal.minute : '-'}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="space-y-2 p-4">
+                            {awayGoals.length === 0 ? (
+                              <p className="py-5 text-center text-xs text-gray-600">득점 기록 없음</p>
+                            ) : awayGoals.map((goal) => (
+                              <GoalLine key={goal.id} goal={goal} align="right" />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 </article>
@@ -237,6 +283,19 @@ export default function MatchesPage() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function GoalLine({ goal, align }: { goal: GoalData; align: 'left' | 'right' }) {
+  return (
+    <div className={`rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 ${align === 'right' ? 'text-right' : ''}`}>
+      <div className={`flex items-center gap-2 ${align === 'right' ? 'justify-end' : ''}`}>
+        {align === 'left' && <span className="rounded-full bg-[#f2d272] px-2 py-0.5 text-[10px] font-black text-black">{goal.minute ? `${goal.minute}'` : '-'}</span>}
+        <p className="text-sm font-black text-white">{goal.scorer_name}</p>
+        {align === 'right' && <span className="rounded-full bg-[#f2d272] px-2 py-0.5 text-[10px] font-black text-black">{goal.minute ? `${goal.minute}'` : '-'}</span>}
+      </div>
+      {goal.note && <p className="mt-1 text-xs text-gray-500">{goal.note}</p>}
     </div>
   );
 }
