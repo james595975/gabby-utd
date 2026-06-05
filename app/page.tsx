@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
+import SiteHamburgerMenu from './components/SiteHamburgerMenu';
 
 // 서버 액션 임포트 (경로가 다를 경우 @/app/actions 등으로 수정해주세요)
 import { sendInquiryEmail } from './actions'; 
@@ -357,6 +358,7 @@ export default function Home() {
 
   const autoScrollFrameRef = useRef<number | null>(null);
   const autoScrollResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoScrollLoopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAutoScrollingRef = useRef(false);
   const autoScrollLastFrameRef = useRef<number | null>(null);
   const autoScrollCarryRef = useRef(0);
@@ -364,10 +366,20 @@ export default function Home() {
   useEffect(() => {
     const autoScrollPixelsPerSecond = 36;
 
-    const stopAutoScroll = () => {
+    const clearLoopTimer = () => {
+      if (autoScrollLoopTimerRef.current) {
+        clearTimeout(autoScrollLoopTimerRef.current);
+        autoScrollLoopTimerRef.current = null;
+      }
+    };
+
+    const stopAutoScroll = (clearLoop = true) => {
       isAutoScrollingRef.current = false;
       autoScrollLastFrameRef.current = null;
       autoScrollCarryRef.current = 0;
+      if (clearLoop) {
+        clearLoopTimer();
+      }
       if (autoScrollFrameRef.current !== null) {
         cancelAnimationFrame(autoScrollFrameRef.current);
         autoScrollFrameRef.current = null;
@@ -395,7 +407,11 @@ export default function Home() {
         const moveBy = Math.floor(autoScrollCarryRef.current);
 
         if (window.scrollY >= maxScroll - 2) {
-          stopAutoScroll();
+          stopAutoScroll(false);
+          autoScrollLoopTimerRef.current = setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            autoScrollLoopTimerRef.current = setTimeout(startAutoScroll, 1200);
+          }, 2000);
           return;
         } else if (moveBy > 0) {
           autoScrollCarryRef.current -= moveBy;
@@ -615,12 +631,16 @@ export default function Home() {
           </div>
 
           {/* 중앙 네비게이션 메뉴 링크 */}
-          <div className="flex flex-wrap justify-end pl-32 sm:justify-center sm:pl-0 gap-2 sm:gap-3 text-xs font-bold text-gray-400 select-none">
+          <div className="hidden md:flex flex-wrap justify-center gap-2 sm:gap-3 text-xs font-bold text-gray-400 select-none">
             <button type="button" onClick={() => scrollToSection('hero')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">홈</button>
             <button type="button" onClick={() => scrollToSection('schedule')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">일정</button>
             <button type="button" onClick={() => scrollToSection('lineup')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">라인업</button>
             <button type="button" onClick={() => scrollToSection('players')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">선수단</button>
             <button type="button" onClick={() => scrollToSection('contact')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">문의</button>
+          </div>
+
+          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+            <SiteHamburgerMenu active="home" />
           </div>
         </div>
       </nav>
@@ -655,7 +675,7 @@ export default function Home() {
               다음 경기 보기
             </button>
             <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-7 py-3.5 text-sm font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
-              경기 기록
+              경기 결과
             </Link>
           </div>
         </div>
@@ -721,7 +741,7 @@ export default function Home() {
                       전체 일정
                     </Link>
                     <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
-                      경기 기록
+                      경기 결과
                     </Link>
                     <button onClick={() => scrollToSection('contact')} className="rounded-full bg-[#f2d272] px-4 py-2 text-xs font-black text-black hover:bg-white transition-colors">
                       참가 문의
@@ -920,7 +940,7 @@ export default function Home() {
               href="/matches" 
               className="text-xs font-black text-[#f2d272] hover:text-white bg-black/30 hover:bg-black/50 border border-gray-700 px-3 py-2 rounded-xl transition-all flex items-center gap-1 shadow-md"
             >
-              경기 기록 보기
+              경기 결과 보기
             </Link>
           </div>
 
