@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
+import SiteHamburgerMenu from '../components/SiteHamburgerMenu';
 
 interface NewsItem {
   id: number;
@@ -91,14 +92,7 @@ export default function NewsPage() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] p-1">
-            <Link href="/" className="rounded-full px-3.5 py-2 text-xs font-black text-gray-300 transition-colors hover:bg-white/10 hover:text-white">
-              홈
-            </Link>
-            <Link href="/matches" className="hidden rounded-full px-3.5 py-2 text-xs font-black text-gray-400 transition-colors hover:bg-white/10 hover:text-white sm:block">
-              경기 기록
-            </Link>
-          </div>
+          <SiteHamburgerMenu active="news" />
         </div>
       </nav>
 

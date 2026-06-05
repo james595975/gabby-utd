@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
+import SiteHamburgerMenu from '../components/SiteHamburgerMenu';
 
 interface MatchData {
   id: number;
@@ -104,10 +105,7 @@ export default function MatchesPage() {
             />
             <span>Gabby UTD</span>
           </Link>
-          <div className="flex gap-5 text-xs sm:text-sm font-bold text-gray-400">
-            <Link href="/" className="hover:text-white transition-colors">메인 홈</Link>
-            <Link href="/matches" className="text-[#f2d272] border-b-2 border-[#f2d272] pb-1">MATCHES</Link>
-          </div>
+          <SiteHamburgerMenu active="matches" />
         </div>
       </nav>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
+import SiteHamburgerMenu from '../components/SiteHamburgerMenu';
 
 interface ScheduleItem {
   id: number;
@@ -57,10 +58,7 @@ export default function SchedulePage() {
             <img src={DEFAULT_HOME_LOGO} alt="Gabby UTD" className="h-7 w-7 rounded-full object-cover" />
             Gabby UTD
           </Link>
-          <div className="flex gap-4 text-xs font-bold text-gray-400">
-            <Link href="/" className="hover:text-white transition-colors">메인 홈</Link>
-            <Link href="/matches" className="hover:text-white transition-colors">MATCHES</Link>
-          </div>
+          <SiteHamburgerMenu active="schedule" />
         </div>
       </nav>
 
