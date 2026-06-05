@@ -20,6 +20,18 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Instagram Feed
+
+Set these environment variables in Vercel to show recent Instagram posts on the home news section:
+
+```bash
+INSTAGRAM_USER_ID=your_instagram_business_or_creator_user_id
+INSTAGRAM_ACCESS_TOKEN=your_meta_graph_api_access_token
+NEXT_PUBLIC_INSTAGRAM_URL=https://www.instagram.com/your_account/
+```
+
+`INSTAGRAM_ACCESS_TOKEN` must stay server-only. Do not prefix it with `NEXT_PUBLIC_`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
 
 // 서버 액션 임포트 (경로가 다를 경우 @/app/actions 등으로 수정해주세요)
 import { sendInquiryEmail } from './actions'; 
+
+const INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL || 'https://www.instagram.com/gabby_utd/';
 
 interface Player { 
   id: number; 
@@ -30,12 +32,21 @@ interface MatchData {
 }
 
 interface NewsItem {
-  id: number;
+  id: number | string;
   title: string;
   content: string;
   image_url?: string;
+  link_url?: string | null;
   tag: string;
   created_at: string;
+}
+
+interface InstagramPost {
+  id: string;
+  caption: string;
+  image_url?: string | null;
+  permalink?: string | null;
+  timestamp?: string | null;
 }
 
 interface ScheduleItem {
@@ -144,6 +155,71 @@ const FORMATION_STYLES: Record<string, Record<number, { top: string; left: strin
     5: { top: '50%', left: '88%' },   // RM
     10: { top: '22%', left: '35%' },  // LS
     11: { top: '22%', left: '65%' },  // RS
+  },
+  '4-2-3-1': {
+    1: { top: '88%', left: '50%' },
+    2: { top: '70%', left: '14%' },
+    3: { top: '73%', left: '36%' },
+    4: { top: '73%', left: '64%' },
+    5: { top: '70%', left: '86%' },
+    6: { top: '55%', left: '38%' },
+    7: { top: '55%', left: '62%' },
+    8: { top: '38%', left: '18%' },
+    9: { top: '36%', left: '50%' },
+    10: { top: '38%', left: '82%' },
+    11: { top: '18%', left: '50%' },
+  },
+  '4-1-4-1': {
+    1: { top: '88%', left: '50%' },
+    2: { top: '70%', left: '15%' },
+    3: { top: '73%', left: '38%' },
+    4: { top: '73%', left: '62%' },
+    5: { top: '70%', left: '85%' },
+    6: { top: '57%', left: '50%' },
+    7: { top: '40%', left: '14%' },
+    8: { top: '42%', left: '38%' },
+    9: { top: '42%', left: '62%' },
+    10: { top: '40%', left: '86%' },
+    11: { top: '18%', left: '50%' },
+  },
+  '3-4-3': {
+    1: { top: '88%', left: '50%' },
+    2: { top: '73%', left: '25%' },
+    3: { top: '76%', left: '50%' },
+    4: { top: '73%', left: '75%' },
+    5: { top: '50%', left: '12%' },
+    6: { top: '52%', left: '38%' },
+    7: { top: '52%', left: '62%' },
+    8: { top: '50%', left: '88%' },
+    9: { top: '24%', left: '18%' },
+    10: { top: '18%', left: '50%' },
+    11: { top: '24%', left: '82%' },
+  },
+  '4-5-1': {
+    1: { top: '88%', left: '50%' },
+    2: { top: '70%', left: '15%' },
+    3: { top: '73%', left: '38%' },
+    4: { top: '73%', left: '62%' },
+    5: { top: '70%', left: '85%' },
+    6: { top: '47%', left: '12%' },
+    7: { top: '50%', left: '32%' },
+    8: { top: '53%', left: '50%' },
+    9: { top: '50%', left: '68%' },
+    10: { top: '47%', left: '88%' },
+    11: { top: '20%', left: '50%' },
+  },
+  '3-4-1-2': {
+    1: { top: '88%', left: '50%' },
+    2: { top: '73%', left: '25%' },
+    3: { top: '76%', left: '50%' },
+    4: { top: '73%', left: '75%' },
+    5: { top: '50%', left: '12%' },
+    6: { top: '52%', left: '38%' },
+    7: { top: '52%', left: '62%' },
+    8: { top: '50%', left: '88%' },
+    9: { top: '34%', left: '50%' },
+    10: { top: '17%', left: '36%' },
+    11: { top: '17%', left: '64%' },
   }
 };
 
@@ -170,12 +246,8 @@ export default function Home() {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 선수 선택 상태 관리 (클릭 시 강조 효과용)
-  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
-
   const DEFAULT_HOME_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/home_icon/home_icon.jpg'; 
   const DEFAULT_AWAY_LOGO = 'https://bdsatcdfwqgrlbqvikte.supabase.co/storage/v1/object/public/away_icon/away_icon.jpg';
-
   useEffect(() => {
     const fetchPlayers = async () => {
       const { data, error } = await supabase
@@ -187,12 +259,35 @@ export default function Home() {
 
     const fetchNews = async () => {
       try {
-        const { data, error } = await supabase
+        const [{ data, error }, instagramResponse] = await Promise.all([
+          supabase
           .from('news')
-          .select('id,title,content,image_url,tag,created_at')
+          .select('id,title,content,image_url,link_url,tag,created_at')
           .order('id', { ascending: false })
-          .limit(2);
-        if (!error && data) setNews(data);
+            .limit(3),
+          fetch('/api/instagram').catch(() => null),
+        ]);
+
+        const instagramPayload = instagramResponse?.ok ? await instagramResponse.json() : { posts: [] };
+        const instagramNews: NewsItem[] = (instagramPayload.posts || []).map((post: InstagramPost) => {
+          const caption = post.caption || 'Instagram 게시글';
+          const title = caption.split('\n').find(Boolean)?.slice(0, 48) || 'Instagram 게시글';
+          return {
+            id: `instagram-${post.id}`,
+            title,
+            content: caption,
+            image_url: post.image_url || undefined,
+            link_url: post.permalink || INSTAGRAM_URL,
+            tag: 'Instagram',
+            created_at: post.timestamp || new Date().toISOString(),
+          };
+        });
+
+        if (!error) {
+          setNews([...(data || []), ...instagramNews]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 3));
+        }
       } catch (e) {
         console.error("News fetch error on home:", e);
       } finally {
@@ -258,6 +353,85 @@ export default function Home() {
     fetchMatchData();
     fetchNextSchedule();
     fetchFormation();
+  }, []);
+
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const autoScrollResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAutoScrollingRef = useRef(false);
+  const autoScrollLastFrameRef = useRef<number | null>(null);
+  const autoScrollCarryRef = useRef(0);
+
+  useEffect(() => {
+    const autoScrollPixelsPerSecond = 36;
+
+    const stopAutoScroll = () => {
+      isAutoScrollingRef.current = false;
+      autoScrollLastFrameRef.current = null;
+      autoScrollCarryRef.current = 0;
+      if (autoScrollFrameRef.current !== null) {
+        cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
+      }
+    };
+
+    const startAutoScroll = () => {
+      if (isAutoScrollingRef.current) return;
+      isAutoScrollingRef.current = true;
+      autoScrollLastFrameRef.current = null;
+
+      const tick = (timestamp: number) => {
+        if (!isAutoScrollingRef.current) return;
+
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        if (maxScroll <= 0) {
+          autoScrollFrameRef.current = requestAnimationFrame(tick);
+          return;
+        }
+
+        const lastFrame = autoScrollLastFrameRef.current ?? timestamp;
+        const deltaSeconds = Math.min((timestamp - lastFrame) / 1000, 0.1);
+        autoScrollLastFrameRef.current = timestamp;
+        autoScrollCarryRef.current += autoScrollPixelsPerSecond * deltaSeconds;
+        const moveBy = Math.floor(autoScrollCarryRef.current);
+
+        if (window.scrollY >= maxScroll - 2) {
+          stopAutoScroll();
+          return;
+        } else if (moveBy > 0) {
+          autoScrollCarryRef.current -= moveBy;
+          window.scrollBy({ top: moveBy, behavior: 'auto' });
+        }
+
+        autoScrollFrameRef.current = requestAnimationFrame(tick);
+      };
+
+      autoScrollFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    const pauseForUserControl = () => {
+      stopAutoScroll();
+      if (autoScrollResumeTimerRef.current) {
+        clearTimeout(autoScrollResumeTimerRef.current);
+      }
+      autoScrollResumeTimerRef.current = setTimeout(startAutoScroll, 30000);
+    };
+
+    startAutoScroll();
+
+    const interactionEvents: Array<keyof WindowEventMap> = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+    interactionEvents.forEach((eventName) => {
+      window.addEventListener(eventName, pauseForUserControl, { passive: true });
+    });
+
+    return () => {
+      stopAutoScroll();
+      if (autoScrollResumeTimerRef.current) {
+        clearTimeout(autoScrollResumeTimerRef.current);
+      }
+      interactionEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, pauseForUserControl);
+      });
+    };
   }, []);
 
   const getPositionStyles = (pos: string) => {
@@ -413,11 +587,11 @@ export default function Home() {
       
       {/* 📌 [고정 및 스캔강화] 최상단 고정 네비게이션 바 */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-lg transition-all duration-300">
-        <div className="max-w-5xl mx-auto flex justify-between items-center gap-4">
+        <div className="max-w-5xl mx-auto relative flex items-center justify-center gap-4">
           {/* 구단 로고 및 이름 */}
           <div 
             onClick={() => scrollToSection('hero')} 
-            className="font-black text-lg tracking-wider text-white hover:text-[#f2d272] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 select-none"
+            className="absolute left-0 font-black text-sm sm:text-lg tracking-wider text-white hover:text-[#f2d272] transition-colors flex items-center gap-2 cursor-pointer select-none"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -426,23 +600,25 @@ export default function Home() {
               className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5 border border-white/10"
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
-            <span>Gabby UTD</span>
-          </div>
-
-          {/* 스폰서 영역 */}
-          <div className="hidden lg:flex items-center gap-2.5 text-[11px] font-bold text-gray-400 bg-white/5 px-3.5 py-1.5 rounded-full border border-white/5 shadow-inner">
-            <span className="text-gray-400 text-[10px] tracking-wide font-medium whitespace-nowrap">Gabby UTD Sponsored by</span>
-            <span className="w-px h-3 bg-white/10"></span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[#f2d272] font-black tracking-wider uppercase">Your Brand Here</span>
+            <div className="flex flex-col leading-none">
+              <span>Gabby UTD</span>
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1 text-[10px] font-black tracking-normal text-[#f2d272] hover:text-white transition-colors"
+              >
+                Instagram 바로가기
+              </a>
             </div>
           </div>
 
-          {/* 우측 네비게이션 메뉴 링크 */}
-          <div className="flex flex-wrap justify-end gap-2 sm:gap-3 text-xs font-bold text-gray-400 flex-shrink-0 select-none">
+          {/* 중앙 네비게이션 메뉴 링크 */}
+          <div className="flex flex-wrap justify-end pl-32 sm:justify-center sm:pl-0 gap-2 sm:gap-3 text-xs font-bold text-gray-400 select-none">
             <button type="button" onClick={() => scrollToSection('hero')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">홈</button>
             <button type="button" onClick={() => scrollToSection('schedule')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">일정</button>
-            <button type="button" onClick={() => scrollToSection('lineup')} className="rounded-full bg-[#f2d272]/10 px-2.5 py-1.5 text-[#f2d272] hover:bg-[#f2d272]/15 transition-colors">라인업</button>
+            <button type="button" onClick={() => scrollToSection('lineup')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">라인업</button>
             <button type="button" onClick={() => scrollToSection('players')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">선수단</button>
             <button type="button" onClick={() => scrollToSection('contact')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">문의</button>
           </div>
@@ -596,7 +772,13 @@ export default function Home() {
           ) : (
             <div className="space-y-4">
               {news.map((item) => (
-                <Link href="/news" key={item.id} className="block bg-[#0a0a0a] border border-gray-800/60 hover:border-gray-600 p-5 rounded-2xl shadow-xl transition-all group">
+                <Link
+                  href={item.link_url || '/news'}
+                  key={item.id}
+                  target={item.link_url ? '_blank' : undefined}
+                  rel={item.link_url ? 'noreferrer' : undefined}
+                  className="block bg-[#0a0a0a] border border-gray-800/60 hover:border-gray-600 p-5 rounded-2xl shadow-xl transition-all group"
+                >
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -696,22 +878,16 @@ export default function Home() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
               {players.map((player) => {
                 const posStyle = getPositionStyles(player.position);
-                const isSelected = selectedPlayerId === player.id; 
 
                 return (
                   <div 
                     key={player.id} 
-                    onClick={() => setSelectedPlayerId(isSelected ? null : player.id)} 
-                    className={`cursor-pointer rounded-2xl p-6 sm:p-7 flex flex-col items-center border shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${posStyle.cardClass} ${
-                      isSelected ? 'ring-2 ring-white scale-105 bg-black/60 shadow-[0_0_15px_rgba(255,255,255,0.2)]' : '' 
-                    }`}
+                    className={`rounded-2xl p-6 sm:p-7 flex flex-col items-center border shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${posStyle.cardClass}`}
                   >
                     <div className="w-16 h-16 rounded-full border-2 border-white/10 flex items-center justify-center mb-4 text-3xl bg-black/40 text-white/80 shadow-md">
                       👤
                     </div>
-                    <div className={`font-black text-lg sm:text-xl mb-3 tracking-wide truncate w-full text-center transition-colors ${
-                      isSelected ? 'text-white' : 'text-gray-200'
-                    }`}>
+                    <div className="font-black text-lg sm:text-xl mb-3 tracking-wide truncate w-full text-center text-gray-200 transition-colors">
                       {player.name}
                     </div>
                     {player.back_number && (
