@@ -66,6 +66,71 @@ const FORMATION_CONFIG: Record<string, { id: number; label: string }[]> = {
     { id: 4, label: '우측 센터백 (RCB)' },
     { id: 1, label: '골키퍼 (GK)' },
   ],
+  '4-2-3-1': [
+    { id: 11, label: '원톱 스트라이커 (ST)' },
+    { id: 8, label: '좌측 공격형 미드필더 (LAM)' },
+    { id: 9, label: '중앙 공격형 미드필더 (CAM)' },
+    { id: 10, label: '우측 공격형 미드필더 (RAM)' },
+    { id: 6, label: '좌측 수비형 미드필더 (LDM)' },
+    { id: 7, label: '우측 수비형 미드필더 (RDM)' },
+    { id: 2, label: '좌측 수비수 (LB)' },
+    { id: 3, label: '좌측 센터백 (LCB)' },
+    { id: 4, label: '우측 센터백 (RCB)' },
+    { id: 5, label: '우측 수비수 (RB)' },
+    { id: 1, label: '골키퍼 (GK)' },
+  ],
+  '4-1-4-1': [
+    { id: 11, label: '원톱 스트라이커 (ST)' },
+    { id: 7, label: '좌측 미드필더 (LM)' },
+    { id: 8, label: '좌측 중앙 미드필더 (LCM)' },
+    { id: 9, label: '우측 중앙 미드필더 (RCM)' },
+    { id: 10, label: '우측 미드필더 (RM)' },
+    { id: 6, label: '수비형 미드필더 (CDM)' },
+    { id: 2, label: '좌측 수비수 (LB)' },
+    { id: 3, label: '좌측 센터백 (LCB)' },
+    { id: 4, label: '우측 센터백 (RCB)' },
+    { id: 5, label: '우측 수비수 (RB)' },
+    { id: 1, label: '골키퍼 (GK)' },
+  ],
+  '3-4-3': [
+    { id: 9, label: '좌측 공격수 (LW)' },
+    { id: 10, label: '중앙 공격수 (ST)' },
+    { id: 11, label: '우측 공격수 (RW)' },
+    { id: 5, label: '좌측 윙백 (LWB)' },
+    { id: 6, label: '좌측 중앙 미드필더 (LCM)' },
+    { id: 7, label: '우측 중앙 미드필더 (RCM)' },
+    { id: 8, label: '우측 윙백 (RWB)' },
+    { id: 2, label: '좌측 센터백 (LCB)' },
+    { id: 3, label: '중앙 센터백 (CB)' },
+    { id: 4, label: '우측 센터백 (RCB)' },
+    { id: 1, label: '골키퍼 (GK)' },
+  ],
+  '4-5-1': [
+    { id: 11, label: '원톱 스트라이커 (ST)' },
+    { id: 6, label: '좌측 미드필더 (LM)' },
+    { id: 7, label: '좌측 중앙 미드필더 (LCM)' },
+    { id: 8, label: '중앙 미드필더 (CM)' },
+    { id: 9, label: '우측 중앙 미드필더 (RCM)' },
+    { id: 10, label: '우측 미드필더 (RM)' },
+    { id: 2, label: '좌측 수비수 (LB)' },
+    { id: 3, label: '좌측 센터백 (LCB)' },
+    { id: 4, label: '우측 센터백 (RCB)' },
+    { id: 5, label: '우측 수비수 (RB)' },
+    { id: 1, label: '골키퍼 (GK)' },
+  ],
+  '3-4-1-2': [
+    { id: 10, label: '좌측 전방 공격수 (LS)' },
+    { id: 11, label: '우측 전방 공격수 (RS)' },
+    { id: 9, label: '공격형 미드필더 (CAM)' },
+    { id: 5, label: '좌측 윙백 (LWB)' },
+    { id: 6, label: '좌측 중앙 미드필더 (LCM)' },
+    { id: 7, label: '우측 중앙 미드필더 (RCM)' },
+    { id: 8, label: '우측 윙백 (RWB)' },
+    { id: 2, label: '좌측 센터백 (LCB)' },
+    { id: 3, label: '중앙 센터백 (CB)' },
+    { id: 4, label: '우측 센터백 (RCB)' },
+    { id: 1, label: '골키퍼 (GK)' },
+  ],
 };
 
 export default function AdminLineup() {
@@ -219,6 +284,11 @@ export default function AdminLineup() {
               <option value="5-3-2">5 - 3 - 2 (수비형)</option>
               <option value="4-3-3">4 - 3 - 3 (공격형)</option>
               <option value="3-5-2">3 - 5 - 2 (미드필더형)</option>
+              <option value="4-2-3-1">4 - 2 - 3 - 1 (밸런스형)</option>
+              <option value="4-1-4-1">4 - 1 - 4 - 1 (압박형)</option>
+              <option value="3-4-3">3 - 4 - 3 (윙백 공격형)</option>
+              <option value="4-5-1">4 - 5 - 1 (중원 장악형)</option>
+              <option value="3-4-1-2">3 - 4 - 1 - 2 (투톱 전개형)</option>
             </select>
           </div>
           
