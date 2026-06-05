@@ -71,25 +71,34 @@ export default function NewsPage() {
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] bg-[#3b1028]/20 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {/* 📌 상단 네비게이션 헤더 */}
-      <nav className="border-b border-gray-800/50 bg-black/40 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          {/* 왼쪽 상단 구단 로고 링크 구역 */}
-          <Link href="/" className="flex items-center gap-3 group transition-transform active:scale-95">
-            <div className="w-8 h-8 rounded-full bg-black/40 border border-gray-700 flex items-center justify-center overflow-hidden shadow-md p-0.5">
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#050505]/85 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+          <Link href="/" className="group flex items-center gap-3 transition-transform active:scale-95">
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.04] p-0.5 shadow-[0_0_18px_rgba(242,210,114,0.08)]">
               {logoUrl ? (
-                <img src={logoUrl} alt="Club Logo" className="w-full h-full object-cover rounded-full" />
+                <img src={logoUrl} alt="Gabby UTD" className="h-full w-full rounded-full object-cover" />
               ) : (
-                <span className="text-[#f2d272] text-[10px] font-black">UTD</span>
+                <span className="text-[10px] font-black text-[#f2d272]">UTD</span>
               )}
             </div>
-            <span className="text-base font-black tracking-wider text-white group-hover:text-[#f2d272] transition-colors">
-              계비 UTD
-            </span>
+            <div className="leading-tight">
+              <span className="block text-base font-black tracking-wide text-white transition-colors group-hover:text-[#f2d272]">
+                Gabby UTD
+              </span>
+              <span className="mt-0.5 block text-[10px] font-black uppercase tracking-[0.22em] text-[#f2d272]/80">
+                News Room
+              </span>
+            </div>
           </Link>
 
-          <Link href="/" className="text-xs font-bold bg-black/50 border border-gray-800 px-4 py-2 rounded-xl hover:bg-[#111] hover:text-white hover:border-gray-600 transition-all shadow-md">
-            🏠 홈 화면
-          </Link>
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] p-1">
+            <Link href="/" className="rounded-full px-3.5 py-2 text-xs font-black text-gray-300 transition-colors hover:bg-white/10 hover:text-white">
+              홈
+            </Link>
+            <Link href="/matches" className="hidden rounded-full px-3.5 py-2 text-xs font-black text-gray-400 transition-colors hover:bg-white/10 hover:text-white sm:block">
+              경기 기록
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -99,7 +108,7 @@ export default function NewsPage() {
           <span>📰</span> 구단 소식통
         </h1>
         <p className="text-gray-400 text-xs sm:text-sm max-w-md mx-auto tracking-wide leading-relaxed">
-          계비 UTD의 최신 공지사항과 생생한 경기 리포트를 확인하세요.
+          Gabby UTD의 최신 공지사항과 생생한 경기 리포트를 확인하세요.
         </p>
       </section>
 
