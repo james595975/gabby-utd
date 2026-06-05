@@ -7,7 +7,7 @@ import Link from 'next/link';
 // 서버 액션 임포트 (경로가 다를 경우 @/app/actions 등으로 수정해주세요)
 import { sendInquiryEmail } from './actions'; 
 
-const INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL || 'https://www.instagram.com/gabby_utd/';
+const INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL || 'https://www.instagram.com/gabby.utd?igsh=YWk4N2FiZGo4Nnht';
 
 interface Player { 
   id: number; 
