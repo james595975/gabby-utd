@@ -602,18 +602,18 @@ export default function Home() {
     <div className="bg-[#050505] text-white min-h-screen font-sans antialiased selection:bg-[#ff00ff]/30 selection:text-white overflow-x-hidden">
       
       {/* 📌 [고정 및 스캔강화] 최상단 고정 네비게이션 바 */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-lg transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/75 backdrop-blur-md px-4 py-2.5 shadow-lg transition-all duration-300 sm:px-6 sm:py-3.5">
         <div className="max-w-5xl mx-auto relative flex items-center justify-center gap-4">
           {/* 구단 로고 및 이름 */}
           <div 
             onClick={() => scrollToSection('hero')} 
-            className="absolute left-0 font-black text-sm sm:text-lg tracking-wider text-white hover:text-[#f2d272] transition-colors flex items-center gap-2 cursor-pointer select-none"
+            className="absolute left-0 font-black text-sm tracking-wide text-white hover:text-[#f2d272] transition-colors flex items-center gap-2 cursor-pointer select-none sm:text-lg sm:tracking-wider"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={homeLogoUrl} 
               alt="Gabby UTD Mini Logo" 
-              className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5 border border-white/10"
+              className="h-7 w-7 object-contain rounded-full bg-black/20 p-0.5 border border-white/10 sm:h-6 sm:w-6"
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
             <div className="flex flex-col leading-none">
@@ -623,7 +623,7 @@ export default function Home() {
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="mt-1 text-[10px] font-black tracking-normal text-[#f2d272] hover:text-white transition-colors"
+                className="mt-0.5 text-[10px] font-black tracking-normal text-[#f2d272] hover:text-white transition-colors"
               >
                 Instagram 바로가기
               </a>
@@ -646,10 +646,10 @@ export default function Home() {
       </nav>
 
       {/* 🌌 1. 히어로 구역 (미드나잇 블루 테마) */}
-      <section id="hero" className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-4 py-16 bg-gradient-to-b from-[#1a233a]/40 via-[#0a0d14] to-[#050505]">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#1a233a]/30 rounded-full blur-[120px] pointer-events-none" />
+      <section id="hero" className="relative min-h-[74vh] flex flex-col items-center justify-center text-center px-4 pb-14 pt-24 bg-gradient-to-b from-[#1a233a]/40 via-[#0a0d14] to-[#050505] sm:min-h-[80vh] sm:py-16">
+        <div className="absolute top-1/4 left-1/4 h-[320px] w-[320px] rounded-full bg-[#1a233a]/30 blur-[90px] pointer-events-none sm:h-[500px] sm:w-[500px] sm:blur-[120px]" />
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#1a233a] flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(26,35,58,0.6)] mb-6 relative transition-transform hover:scale-105 duration-500">
+          <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#1a233a] flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(26,35,58,0.6)] mb-5 sm:mb-6 relative transition-transform hover:scale-105 duration-500">
             <div className="absolute inset-0 rounded-full border border-white/10 m-2 z-20"></div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -659,22 +659,22 @@ export default function Home() {
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
           </div>
-          <span className="text-[#f2d272] uppercase tracking-[0.3em] text-xs font-bold block mb-4">The New Era of Football</span>
-          <h1 className="text-5xl sm:text-7xl font-black tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
+          <span className="text-[#f2d272] uppercase tracking-[0.24em] sm:tracking-[0.3em] text-[10px] sm:text-xs font-bold block mb-3 sm:mb-4">The New Era of Football</span>
+          <h1 className="text-4xl sm:text-7xl font-black tracking-tight mb-3 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
             {displayHomeTeam}
           </h1>
-          <p className="text-gray-300 text-lg sm:text-xl font-medium tracking-widest mb-12">
+          <p className="text-gray-300 text-base sm:text-xl font-medium tracking-[0.12em] sm:tracking-widest mb-9 sm:mb-12 break-keep">
             열정과 함께, 끝까지 승리를 위하여
           </p>
 
           <div className="flex flex-wrap justify-center gap-3">
             <button
               onClick={() => scrollToSection('schedule')}
-              className="bg-[#f2d272] text-black font-bold py-3.5 px-7 rounded-full hover:bg-white transition-all active:scale-95 shadow-[0_0_20px_rgba(242,210,114,0.3)]"
+              className="bg-[#f2d272] text-black text-sm sm:text-base font-bold py-3 px-6 sm:py-3.5 sm:px-7 rounded-full hover:bg-white transition-all active:scale-95 shadow-[0_0_20px_rgba(242,210,114,0.3)]"
             >
               다음 경기 보기
             </button>
-            <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-7 py-3.5 text-sm font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
+            <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm sm:px-7 sm:py-3.5 font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
               경기 결과
             </Link>
           </div>

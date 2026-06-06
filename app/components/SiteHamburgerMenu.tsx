@@ -51,12 +51,12 @@ export default function SiteHamburgerMenu({ active }: SiteHamburgerMenuProps) {
         onClick={() => setIsOpen((open) => !open)}
         aria-label="메뉴 열기"
         aria-expanded={isOpen}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-gray-200 transition-colors hover:border-[#f2d272]/50 hover:bg-white/[0.08] hover:text-white"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-gray-200 transition-colors hover:border-[#f2d272]/50 hover:bg-white/[0.08] hover:text-white sm:h-10 sm:w-10"
       >
         <span className="flex flex-col gap-1">
-          <span className="block h-0.5 w-4 rounded-full bg-current"></span>
-          <span className="block h-0.5 w-4 rounded-full bg-current"></span>
-          <span className="block h-0.5 w-4 rounded-full bg-current"></span>
+          <span className="block h-0.5 w-3.5 rounded-full bg-current sm:w-4"></span>
+          <span className="block h-0.5 w-3.5 rounded-full bg-current sm:w-4"></span>
+          <span className="block h-0.5 w-3.5 rounded-full bg-current sm:w-4"></span>
         </span>
       </button>
 
