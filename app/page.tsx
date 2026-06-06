@@ -602,22 +602,22 @@ export default function Home() {
     <div className="bg-[#050505] text-white min-h-screen font-sans antialiased selection:bg-[#ff00ff]/30 selection:text-white overflow-x-hidden">
       
       {/* 📌 [고정 및 스캔강화] 최상단 고정 네비게이션 바 */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md px-4 sm:px-6 py-3.5 shadow-lg transition-all duration-300">
-        <div className="max-w-5xl mx-auto relative flex items-center justify-center gap-4">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-md px-4 sm:px-6 py-3 shadow-lg transition-all duration-300 sm:py-3.5">
+        <div className="max-w-5xl mx-auto relative flex min-h-11 items-center justify-between gap-4">
           {/* 구단 로고 및 이름 */}
           <div 
             onClick={() => scrollToSection('hero')} 
-            className="absolute left-0 font-black text-sm sm:text-lg tracking-wider text-white hover:text-[#f2d272] transition-colors flex items-center gap-2 cursor-pointer select-none"
+            className="font-black text-sm sm:text-lg tracking-wider text-white hover:text-[#f2d272] transition-colors flex min-w-0 items-center gap-2 cursor-pointer select-none"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src={homeLogoUrl} 
               alt="Gabby UTD Mini Logo" 
-              className="w-6 h-6 object-contain rounded-full bg-black/20 p-0.5 border border-white/10"
+              className="h-7 w-7 shrink-0 object-contain rounded-full bg-black/20 p-0.5 border border-white/10 sm:h-6 sm:w-6"
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
-            <div className="flex flex-col leading-none">
-              <span>Gabby UTD</span>
+            <div className="flex min-w-0 flex-col leading-none">
+              <span className="truncate">Gabby UTD</span>
               <a
                 href={INSTAGRAM_URL}
                 target="_blank"
@@ -639,17 +639,17 @@ export default function Home() {
             <button type="button" onClick={() => scrollToSection('contact')} className="rounded-full px-2.5 py-1.5 hover:bg-white/5 hover:text-white transition-colors">문의</button>
           </div>
 
-          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+          <div className="shrink-0">
             <SiteHamburgerMenu active="home" />
           </div>
         </div>
       </nav>
 
       {/* 🌌 1. 히어로 구역 (미드나잇 블루 테마) */}
-      <section id="hero" className="relative min-h-[80vh] flex flex-col items-center justify-center text-center px-4 py-16 bg-gradient-to-b from-[#1a233a]/40 via-[#0a0d14] to-[#050505]">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#1a233a]/30 rounded-full blur-[120px] pointer-events-none" />
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#1a233a] flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(26,35,58,0.6)] mb-6 relative transition-transform hover:scale-105 duration-500">
+      <section id="hero" className="relative flex min-h-[82vh] flex-col items-center justify-center overflow-hidden text-center px-5 pb-14 pt-24 bg-gradient-to-b from-[#131a2b]/55 via-[#080b12] to-[#050505] sm:min-h-[80vh] sm:px-4 sm:py-16">
+        <div className="absolute left-1/2 top-[18%] h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-[#1a233a]/35 blur-[90px] pointer-events-none sm:left-1/4 sm:top-1/4 sm:h-[500px] sm:w-[500px] sm:translate-x-0 sm:blur-[120px]" />
+        <div className="relative z-10 flex w-full max-w-sm flex-col items-center sm:max-w-none">
+          <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-black/30 border-4 border-[#1a233a] flex items-center justify-center overflow-hidden shadow-[0_0_40px_rgba(26,35,58,0.6)] mb-7 sm:mb-6 relative transition-transform hover:scale-105 duration-500">
             <div className="absolute inset-0 rounded-full border border-white/10 m-2 z-20"></div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -659,22 +659,22 @@ export default function Home() {
               onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }}
             />
           </div>
-          <span className="text-[#f2d272] uppercase tracking-[0.3em] text-xs font-bold block mb-4">The New Era of Football</span>
-          <h1 className="text-5xl sm:text-7xl font-black tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
+          <span className="text-[#f2d272] uppercase tracking-[0.28em] sm:tracking-[0.3em] text-[11px] sm:text-xs font-bold block mb-4">The New Era of Football</span>
+          <h1 className="text-[3.4rem] leading-none sm:text-7xl font-black tracking-tight mb-5 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
             {displayHomeTeam}
           </h1>
-          <p className="text-gray-300 text-lg sm:text-xl font-medium tracking-widest mb-12">
+          <p className="text-gray-300 text-[1.05rem] leading-relaxed sm:text-xl font-medium tracking-[0.14em] sm:tracking-widest mb-11 sm:mb-12 break-keep">
             열정과 함께, 끝까지 승리를 위하여
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="grid w-full max-w-xs grid-cols-2 gap-3 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
             <button
               onClick={() => scrollToSection('schedule')}
-              className="bg-[#f2d272] text-black font-bold py-3.5 px-7 rounded-full hover:bg-white transition-all active:scale-95 shadow-[0_0_20px_rgba(242,210,114,0.3)]"
+              className="bg-[#f2d272] text-black font-bold py-3.5 px-4 sm:px-7 rounded-full hover:bg-white transition-all active:scale-95 shadow-[0_0_20px_rgba(242,210,114,0.3)]"
             >
               다음 경기 보기
             </button>
-            <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-7 py-3.5 text-sm font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors">
+            <Link href="/matches" className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm font-black text-gray-200 hover:border-[#f2d272]/60 hover:text-white transition-colors sm:px-7">
               경기 결과
             </Link>
           </div>
