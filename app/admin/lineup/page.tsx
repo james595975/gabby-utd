@@ -43,10 +43,10 @@ const FORMATION_CONFIG: Record<string, { id: number; label: string }[]> = {
   '4-4-2': [
     { id: 10, label: '좌측 전방 공격수 (LS)' },
     { id: 11, label: '우측 전방 공격수 (RS)' },
-    { id: 9, label: '좌측 미드필더 (LM)' },
-    { id: 6, label: '좌측 중앙 미드필더 (LCM)' },
+    { id: 6, label: '좌측 미드필더 (LM)' },
+    { id: 7, label: '좌측 중앙 미드필더 (LCM)' },
     { id: 8, label: '우측 중앙 미드필더 (RCM)' },
-    { id: 7, label: '우측 미드필더 (RM)' },
+    { id: 9, label: '우측 미드필더 (RM)' },
     { id: 2, label: '좌측 수비수 (LB)' },
     { id: 3, label: '중앙 수비수 1 (LCB)' },
     { id: 4, label: '중앙 수비수 2 (RCB)' },
