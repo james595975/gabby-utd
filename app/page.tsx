@@ -631,6 +631,7 @@ export default function Home() {
   const displayHomeScore = match !== null ? match.home_score : 0;
   const displayAwayScore = match !== null ? match.away_score : 0;
   const displayDate = match?.date || '최근 경기 기록';
+  const displayMatchTitle = match?.is_practice ? 'FRIENDLY MATCH' : match ? `DFL ${match.id}ROUND` : 'MATCH RESULT';
 
   const homeLogoUrl = match?.home_logo && match.home_logo.startsWith('http') ? match.home_logo.trim() : DEFAULT_HOME_LOGO;
   const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;
@@ -987,7 +988,13 @@ export default function Home() {
                   <span className="text-gray-100">경기 종료</span>
                 </div>
 
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pb-5 pt-2 sm:px-10 sm:pb-7">
+                <div className="px-5 pb-2 text-center sm:px-7">
+                  <p className="text-xl font-black tracking-[0.14em] text-white sm:text-2xl">
+                    {displayMatchTitle}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pb-5 pt-3 sm:px-10 sm:pb-7">
                   <div className="flex min-w-0 flex-col items-center text-center">
                     <div className="mb-3 h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-black/30 sm:h-16 sm:w-16">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
