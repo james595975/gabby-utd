@@ -198,35 +198,34 @@ export default function AdminLineup() {
         return;
       }
 
-      // 1. [추가] 포메이션 테이블 변경사항 저장
-      await supabase
-        .from('formations')
-        .update({ current_formation: formation, updated_at: new Date().toISOString() })
-        .eq('id', 1);
-
-      // 2. 기존에 포지션을 부여받았던 선수들의 lineup_spot을 초기화
-      await supabase
-        .from('players')
-        .update({ lineup_spot: null })
-        .not('lineup_spot', 'is', null);
-
-      // 3. 현재 선택한 포메이션 양식(SPOTS 데이터) 기준으로 순차 고유 번호 부여
       const activeSpots = FORMATION_CONFIG[formation] || FORMATION_CONFIG['4-3-3'];
+      const lineupPayload: Record<number, number> = {};
       for (const spot of activeSpots) {
         const targetPlayerId = currentLineup[spot.id];
         if (targetPlayerId && targetPlayerId !== 'none') {
-          await supabase
-            .from('players')
-            .update({ lineup_spot: spot.id })
-            .eq('id', parseInt(targetPlayerId));
+          lineupPayload[spot.id] = parseInt(targetPlayerId);
         }
+      }
+
+      const response = await fetch('/api/admin/lineup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          formation,
+          lineup: lineupPayload,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || '라인업 저장에 실패했습니다.');
       }
 
       alert('🔥 선발 라인업 및 포메이션 전술이 성공적으로 저장되어 메인 화면에 반영되었습니다!');
       fetchInitialData();
     } catch (err) {
       console.error(err);
-      alert('저장 도중 에러가 발생했습니다.');
+      alert(err instanceof Error ? err.message : '저장 도중 에러가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
