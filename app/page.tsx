@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
 import SiteHamburgerMenu from './components/SiteHamburgerMenu';
@@ -69,7 +69,7 @@ interface PlayerDotProps {
   isGK?: boolean;
 }
 
-function PlayerDot({ number, name, isGK = false }: PlayerDotProps) {
+const PlayerDot = memo(function PlayerDot({ number, name, isGK = false }: PlayerDotProps) {
   return (
     <div className="flex flex-col items-center justify-center space-y-1.5 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
       {/* 🔴 등번호가 들어가는 원형 마커 (크기 확대: w-8 h-8 -> w-10 h-10) */}
@@ -97,7 +97,7 @@ function PlayerDot({ number, name, isGK = false }: PlayerDotProps) {
       )}
     </div>
   );
-}
+});
 
 function cleanLogoUrl(value: string | null | undefined, fallback: string) {
   const url = String(value || '').replace(/\s+/g, '').trim();
@@ -568,20 +568,33 @@ export default function Home() {
     }
   };
 
-  const getSpotPlayer = (spotId: number, defaultLabel: string) => {
-  // 전체 players 배열 중 lineup_spot이 현재 잔디구장 스폿 ID와 일치하는 선수를 찾습니다.
-  const found = players.find((p) => p.lineup_spot === spotId);
-  
-  if (found) {
-    return {
-      number: found.back_number?.toString() || '?',
-      name: found.name,
-    };
-  }
-  
-  // 만약 해당 스폿에 배치된 선수가 없다면 공석 처리합니다.
-  return { number: '-', name: defaultLabel };
-};
+  const playersByLineupSpot = useMemo(() => {
+    const spotMap = new Map<number, Player>();
+    for (const player of players) {
+      if (typeof player.lineup_spot === 'number') {
+        spotMap.set(player.lineup_spot, player);
+      }
+    }
+    return spotMap;
+  }, [players]);
+
+  const lineupDots = useMemo(() => {
+    const currentCoords = FORMATION_STYLES[formation] || FORMATION_STYLES['4-4-2'];
+
+    return Array.from({ length: 11 }, (_, index) => {
+      const spotId = index + 1;
+      const player = playersByLineupSpot.get(spotId);
+      const coords = currentCoords[spotId] || { top: '50%', left: '50%' };
+
+      return {
+        spotId,
+        coords,
+        isGK: spotId === 1,
+        number: player?.back_number?.toString() || (player ? '?' : '-'),
+        name: player?.name || '',
+      };
+    });
+  }, [formation, playersByLineupSpot]);
 
   const displayHomeTeam = match?.home_team || 'Gabby UTD';
   const displayAwayTeam = match?.away_team || '상대 팀';
@@ -837,45 +850,26 @@ export default function Home() {
             <span className="text-[10px] text-green-400 font-mono font-bold block uppercase tracking-widest">Starting Lineup</span>
             <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">금주 선발 라인업</h2>
           </div>
-          {(() => {
-            const currentCoords = FORMATION_STYLES[formation] || FORMATION_STYLES['4-4-2'];
-
-            return (
-              <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative flex flex-col items-center justify-center min-h-[480px] sm:min-h-[580px] w-full overflow-hidden py-12">
-                
-                {/* 🏃 11개 스폿 반복 루프 */}
-                {[...Array(11)].map((_, index) => {
-                  const spotId = index + 1;
-                  
-                  // 💡 이제 동일한 컴포넌트 스코프 내부에 선언되었으므로 정상 실행됩니다!
-                  const playerData = getSpotPlayer(spotId, `Spot #${spotId}`);
-                  
-                  const coords = currentCoords[spotId] || { top: '50%', left: '50%' };
-                  const isGK = spotId === 1;
-                  const hasPlayer = playerData.number !== '-';
-
-                  return (
-                    <div
-                      key={spotId}
-                      style={{
-                        position: 'absolute',
-                        top: coords.top,
-                        left: coords.left,
-                        transform: 'translate(-50%, -50%)',
-                        transition: 'all 0.7s cubic-bezier(0.25, 1, 0.5, 1)'
-                      }}
-                    >
-                      <PlayerDot 
-                        number={playerData.number} 
-                        name={hasPlayer ? playerData.name : ''} 
-                        isGK={isGK} 
-                      />
-                    </div>
-                  );
-                })}
+          <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative flex flex-col items-center justify-center min-h-[480px] sm:min-h-[580px] w-full overflow-hidden py-12">
+            {lineupDots.map((dot) => (
+              <div
+                key={dot.spotId}
+                style={{
+                  position: 'absolute',
+                  top: dot.coords.top,
+                  left: dot.coords.left,
+                  transform: 'translate(-50%, -50%)',
+                  transition: 'top 0.35s ease, left 0.35s ease',
+                }}
+              >
+                <PlayerDot
+                  number={dot.number}
+                  name={dot.name}
+                  isGK={dot.isGK}
+                />
               </div>
-            );
-          })()}
+            ))}
+          </div>
         </div>
       </section>
 
