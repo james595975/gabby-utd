@@ -93,6 +93,8 @@ const tabs: { id: Tab; label: string; hint: string }[] = [
   { id: 'messages', label: '받은 문의', hint: '문의/입단 신청 확인' },
 ];
 
+const newsTagOptions = ['공지', '경기결과', '이벤트', '소식'];
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 const defaultMatch = {
@@ -494,7 +496,13 @@ export default function AdminPage() {
               <>
                 <Panel title={editing?.resource === 'news' ? '뉴스 수정' : '뉴스 등록'}>
                   <Field label="제목"><Input value={newsForm.title} onChange={(v) => setNewsForm({ ...newsForm, title: v })} /></Field>
-                  <Field label="태그"><Input value={newsForm.tag} onChange={(v) => setNewsForm({ ...newsForm, tag: v })} /></Field>
+                  <Field label="태그">
+                    <select value={String(newsForm.tag || '공지')} onChange={(e) => setNewsForm({ ...newsForm, tag: e.target.value })} className={selectClass}>
+                      {newsTagOptions.map((tag) => (
+                        <option key={tag} value={tag}>{tag}</option>
+                      ))}
+                    </select>
+                  </Field>
                   <Field label="이미지 URL"><Input value={newsForm.image_url} onChange={(v) => setNewsForm({ ...newsForm, image_url: v })} /></Field>
                   <Field label="링크 URL"><Input value={newsForm.link_url} onChange={(v) => setNewsForm({ ...newsForm, link_url: v })} /></Field>
                   <Field label="내용"><Textarea value={newsForm.content} onChange={(v) => setNewsForm({ ...newsForm, content: v })} /></Field>
