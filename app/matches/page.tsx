@@ -224,7 +224,7 @@ export default function MatchesPage() {
                     </div>
 
                     <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111]">
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch border-b border-white/10 bg-[#141414]">
+                      <div className="grid grid-cols-1 items-stretch border-b border-white/10 bg-[#141414] sm:grid-cols-[1fr_auto_1fr]">
                         <div className="flex min-w-0 items-center gap-3 p-4">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={currentHomeLogo} alt="Home Logo" className="h-10 w-10 shrink-0 rounded-full border border-white/10 bg-black object-contain p-0.5" onError={(e)=>{(e.target as HTMLImageElement).src=DEFAULT_HOME_LOGO}} />
@@ -234,13 +234,13 @@ export default function MatchesPage() {
                           </div>
                         </div>
 
-                        <div className="flex min-w-[96px] items-center justify-center border-x border-white/10 bg-black/50 px-4">
+                        <div className="order-first flex min-w-[96px] items-center justify-center border-b border-white/10 bg-black/50 px-4 py-4 sm:order-none sm:border-x sm:border-b-0 sm:py-0">
                           <span className="text-2xl font-black text-white">{match.home_score}</span>
                           <span className="mx-2 text-sm font-black text-gray-600">:</span>
                           <span className="text-2xl font-black text-white">{match.away_score}</span>
                         </div>
 
-                        <div className="flex min-w-0 items-center justify-end gap-3 p-4 text-right">
+                        <div className="flex min-w-0 items-center gap-3 p-4 sm:justify-end sm:text-right">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-black text-white">{match.away_team || '상대 팀'}</p>
                             <p className="text-[10px] font-bold text-gray-500">AWAY</p>
@@ -253,7 +253,25 @@ export default function MatchesPage() {
                       {matchGoals.length === 0 ? (
                         <p className="px-4 py-8 text-center text-xs font-bold text-gray-500">등록된 득점 기록이 없습니다.</p>
                       ) : (
-                        <div className="grid divide-y divide-white/10 sm:grid-cols-[1fr_auto_1fr] sm:divide-x sm:divide-y-0">
+                        <>
+                        <div className="space-y-2 p-4 sm:hidden">
+                          {matchGoals.map((goal) => (
+                            <div key={goal.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3">
+                              <span className="shrink-0 rounded-full bg-[#f2d272] px-2 py-0.5 text-[10px] font-black text-black">
+                                {goal.minute ? `${goal.minute}'` : '-'}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-black text-white">{goal.scorer_name}</p>
+                                <p className="text-[10px] font-bold text-gray-500">
+                                  {goal.team === 'away' ? match.away_team || '상대 팀' : match.home_team || 'Gabby UTD'}
+                                  {goal.note ? ` · ${goal.note}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="hidden sm:grid sm:grid-cols-[1fr_auto_1fr] sm:divide-x sm:divide-white/10">
                           <div className="space-y-2 p-4">
                             {homeGoals.length === 0 ? (
                               <p className="py-5 text-center text-xs text-gray-600">득점 기록 없음</p>
@@ -278,6 +296,7 @@ export default function MatchesPage() {
                             ))}
                           </div>
                         </div>
+                        </>
                       )}
                     </div>
                   </div>

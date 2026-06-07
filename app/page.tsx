@@ -32,6 +32,15 @@ interface MatchData {
   match_result?: string; 
 }
 
+interface GoalData {
+  id: number;
+  match_id: number;
+  scorer_name: string;
+  minute?: number | null;
+  team: 'home' | 'away';
+  note?: string | null;
+}
+
 interface NewsItem {
   id: number | string;
   title: string;
@@ -230,6 +239,7 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
+  const [recentMatchGoals, setRecentMatchGoals] = useState<GoalData[]>([]);
   const [nextSchedule, setNextSchedule] = useState<ScheduleItem | null>(null);
 
   // 로딩 및 폼 상태 관리
@@ -304,7 +314,21 @@ export default function Home() {
           .order('id', { ascending: false })
           .limit(1);
         if (data && data.length > 0 && !error) {
-          setMatch(data[0]);
+          const latestMatch = data[0];
+          setMatch(latestMatch);
+
+          const { data: goalData, error: goalError } = await supabase
+            .from('match_goals')
+            .select('id,match_id,scorer_name,minute,team,note')
+            .eq('match_id', latestMatch.id)
+            .order('minute', { ascending: true, nullsFirst: false })
+            .order('id', { ascending: true });
+
+          if (!goalError && goalData) {
+            setRecentMatchGoals(goalData);
+          }
+        } else {
+          setRecentMatchGoals([]);
         }
       } catch (e) {
         console.error("Match data fetch error on home:", e);
@@ -604,6 +628,8 @@ export default function Home() {
 
   const homeLogoUrl = match?.home_logo && match.home_logo.startsWith('http') ? match.home_logo.trim() : DEFAULT_HOME_LOGO;
   const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;
+  const homeScorers = recentMatchGoals.filter((goal) => goal.team !== 'away');
+  const awayScorers = recentMatchGoals.filter((goal) => goal.team === 'away');
 
   const tem_logo = homeLogoUrl;
   const displayScheduleDate = nextSchedule?.match_date
@@ -997,6 +1023,25 @@ export default function Home() {
                   </div>
                   <span className="font-black text-base sm:text-xl text-white tracking-wide truncate w-full">{displayAwayTeam}</span>
                   <span className="text-gray-400 text-[10px] sm:text-xs font-bold mt-1">AWAY</span>
+                </div>
+              </div>
+            )}
+
+            {!matchLoading && recentMatchGoals.length > 0 && (
+              <div className="relative z-10 border-t border-white/10 bg-black/25 px-4 py-3 sm:px-8">
+                <div className="flex flex-col gap-2 text-[11px] font-bold text-gray-400 sm:flex-row sm:items-center sm:justify-center sm:gap-5">
+                  {homeScorers.length > 0 && (
+                    <p className="truncate text-center">
+                      <span className="mr-2 text-[#f2d272]">{displayHomeTeam}</span>
+                      {homeScorers.map((goal) => `${goal.minute ? `${goal.minute}' ` : ''}${goal.scorer_name}`).join(' · ')}
+                    </p>
+                  )}
+                  {awayScorers.length > 0 && (
+                    <p className="truncate text-center">
+                      <span className="mr-2 text-gray-500">{displayAwayTeam}</span>
+                      {awayScorers.map((goal) => `${goal.minute ? `${goal.minute}' ` : ''}${goal.scorer_name}`).join(' · ')}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
