@@ -34,19 +34,24 @@ NEXT_PUBLIC_INSTAGRAM_URL=https://www.instagram.com/your_account/
 
 ## Inquiry Email
 
-Set these environment variables in Vercel to send inquiry notifications and auto-replies through Testmail SMTP:
+Testmail receives emails at `sc31e.{tag}@inbox.testmail.app`. It is the inbox used to capture inquiry notification emails, not the SMTP sender itself. Use any SMTP provider for sending, and route admin notifications to Testmail.
 
 ```bash
-TESTMAIL_SMTP_HOST=smtp.testmail.app
-TESTMAIL_SMTP_PORT=587
-TESTMAIL_SMTP_SECURE=false
-TESTMAIL_SMTP_USER=your_testmail_smtp_username
-TESTMAIL_SMTP_PASSWORD=your_testmail_smtp_password
-TESTMAIL_FROM_EMAIL=your_verified_from_address
-INQUIRY_NOTIFICATION_EMAIL=where_admin_notifications_should_go
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_username
+SMTP_PASSWORD=your_smtp_password
+SMTP_FROM_EMAIL=your_verified_from_address
+
+TESTMAIL_NAMESPACE=sc31e
+INQUIRY_NOTIFICATION_EMAIL=sc31e.admin@inbox.testmail.app
+TESTMAIL_CAPTURE_AUTOREPLY=false
 ```
 
-`TESTMAIL_SMTP_USER` and `TESTMAIL_SMTP_PASSWORD` must stay server-only. Do not prefix them with `NEXT_PUBLIC_`.
+If `INQUIRY_NOTIFICATION_EMAIL` is omitted, admin notifications default to `sc31e.admin@inbox.testmail.app`. Set `TESTMAIL_CAPTURE_AUTOREPLY=true` only when testing auto-replies; it sends user auto-replies to `sc31e.auto-reply@inbox.testmail.app` instead of the submitter.
+
+SMTP credentials must stay server-only. Do not prefix them with `NEXT_PUBLIC_`.
 
 ## Learn More
 
