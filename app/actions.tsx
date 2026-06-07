@@ -17,6 +17,9 @@ const MAX_EMAIL_LENGTH = 254;
 const MAX_PHONE_LENGTH = 20;
 const MAX_CONTENT_LENGTH = 1000;
 const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
+const TESTMAIL_SMTP_HOST = process.env.TESTMAIL_SMTP_HOST || 'smtp.testmail.app';
+const TESTMAIL_SMTP_PORT = Number(process.env.TESTMAIL_SMTP_PORT || 587);
+const TESTMAIL_SMTP_SECURE = process.env.TESTMAIL_SMTP_SECURE === 'true' || TESTMAIL_SMTP_PORT === 465;
 
 function escapeHtml(value: string) {
   return value
@@ -169,27 +172,33 @@ export async function sendInquiryEmail(data: EmailData) {
     content: escapeHtml(validated.data.content),
   };
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-    console.error('SMTP 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요.');
+  if (!process.env.TESTMAIL_SMTP_USER || !process.env.TESTMAIL_SMTP_PASSWORD) {
+    console.error('Testmail SMTP 환경변수가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.');
     return { 
       success: false, 
       message: '서버 메일 설정이 누락되었습니다.' 
     };
   }
 
+  const fromAddress = process.env.TESTMAIL_FROM_EMAIL || process.env.TESTMAIL_SMTP_USER;
+  const notificationAddress = process.env.INQUIRY_NOTIFICATION_EMAIL || fromAddress;
+
   const transporter = nodemailer.createTransport({
-    service: 'gmail', 
+    host: TESTMAIL_SMTP_HOST,
+    port: TESTMAIL_SMTP_PORT,
+    secure: TESTMAIL_SMTP_SECURE,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
+      user: process.env.TESTMAIL_SMTP_USER,
+      pass: process.env.TESTMAIL_SMTP_PASSWORD,
     },
   });
 
   const typeLabel = safeData.type === 'join' ? '🏆 입단 신청' : '✉️ 일반 문의';
 
   const mailOptions = {
-    from: process.env.SMTP_USER,
-    to: process.env.SMTP_USER,
+    from: `"Gabby UTD" <${fromAddress}>`,
+    to: notificationAddress,
+    replyTo: validated.data.email,
     subject: `[Gabby UTD] ${typeLabel} - ${safeData.name}님의 신청서가 접수되었습니다.`,
     html: `
       <div style="font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; padding: 24px; border-radius: 16px; background-color: #ffffff; color: #1f2937;">
@@ -282,7 +291,7 @@ export async function sendInquiryEmail(data: EmailData) {
     await transporter.sendMail(mailOptions);
     
     await transporter.sendMail({
-      from: `"Gabby UTD" <${process.env.SMTP_USER}>`, 
+      from: `"Gabby UTD" <${fromAddress}>`,
       to: validated.data.email,
       subject: `[Gabby UTD] 신청하신 내용이 정상적으로 접수되었습니다.`,
       html: autoReplyHtml,

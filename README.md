@@ -32,6 +32,22 @@ NEXT_PUBLIC_INSTAGRAM_URL=https://www.instagram.com/your_account/
 
 `INSTAGRAM_ACCESS_TOKEN` must stay server-only. Do not prefix it with `NEXT_PUBLIC_`.
 
+## Inquiry Email
+
+Set these environment variables in Vercel to send inquiry notifications and auto-replies through Testmail SMTP:
+
+```bash
+TESTMAIL_SMTP_HOST=smtp.testmail.app
+TESTMAIL_SMTP_PORT=587
+TESTMAIL_SMTP_SECURE=false
+TESTMAIL_SMTP_USER=your_testmail_smtp_username
+TESTMAIL_SMTP_PASSWORD=your_testmail_smtp_password
+TESTMAIL_FROM_EMAIL=your_verified_from_address
+INQUIRY_NOTIFICATION_EMAIL=where_admin_notifications_should_go
+```
+
+`TESTMAIL_SMTP_USER` and `TESTMAIL_SMTP_PASSWORD` must stay server-only. Do not prefix them with `NEXT_PUBLIC_`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
