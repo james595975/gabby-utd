@@ -34,24 +34,20 @@ NEXT_PUBLIC_INSTAGRAM_URL=https://www.instagram.com/your_account/
 
 ## Inquiry Email
 
-Testmail receives emails at `sc31e.{tag}@inbox.testmail.app`. It is the inbox used to capture inquiry notification emails, not the SMTP sender itself. Use any SMTP provider for sending, and route admin notifications to Testmail.
+Inquiry emails are sent through Gmail SMTP, then captured in the Testmail namespace `sc31e`.
 
 ```bash
-SMTP_HOST=your_smtp_host
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your_smtp_username
-SMTP_PASSWORD=your_smtp_password
-SMTP_FROM_EMAIL=your_verified_from_address
-
+SMTP_USER=your_gmail_address
+SMTP_PASSWORD=your_gmail_app_password
+SMTP_FROM_EMAIL=your_gmail_address
 TESTMAIL_NAMESPACE=sc31e
 INQUIRY_NOTIFICATION_EMAIL=sc31e.admin@inbox.testmail.app
-TESTMAIL_CAPTURE_AUTOREPLY=false
+AUTO_REPLY_TESTMAIL_EMAIL=sc31e.admin@inbox.testmail.app
 ```
 
-If `INQUIRY_NOTIFICATION_EMAIL` is omitted, admin notifications default to `sc31e.admin@inbox.testmail.app`. Set `TESTMAIL_CAPTURE_AUTOREPLY=true` only when testing auto-replies; it sends user auto-replies to `sc31e.auto-reply@inbox.testmail.app` instead of the submitter.
+If `INQUIRY_NOTIFICATION_EMAIL` is omitted, admin notifications default to `sc31e.admin@inbox.testmail.app`. If `AUTO_REPLY_TESTMAIL_EMAIL` is omitted, auto-replies are sent to the same Testmail admin inbox.
 
-SMTP credentials must stay server-only. Do not prefix them with `NEXT_PUBLIC_`.
+Use a Gmail app password for `SMTP_PASSWORD`. SMTP credentials must stay server-only. Do not prefix them with `NEXT_PUBLIC_`.
 
 ## Learn More
 

@@ -17,8 +17,6 @@ const MAX_EMAIL_LENGTH = 254;
 const MAX_PHONE_LENGTH = 20;
 const MAX_CONTENT_LENGTH = 1000;
 const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_SECURE = process.env.SMTP_SECURE === 'true' || SMTP_PORT === 465;
 const TESTMAIL_NAMESPACE = process.env.TESTMAIL_NAMESPACE || 'sc31e';
 
 function getTestmailAddress(tag: string) {
@@ -176,7 +174,7 @@ export async function sendInquiryEmail(data: EmailData) {
     content: escapeHtml(validated.data.content),
   };
 
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
     console.error('SMTP 환경변수가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.');
     return { 
       success: false, 
@@ -186,14 +184,10 @@ export async function sendInquiryEmail(data: EmailData) {
 
   const fromAddress = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
   const notificationAddress = process.env.INQUIRY_NOTIFICATION_EMAIL || getTestmailAddress('admin');
-  const autoReplyAddress = process.env.TESTMAIL_CAPTURE_AUTOREPLY === 'true'
-    ? getTestmailAddress('auto-reply')
-    : validated.data.email;
+  const autoReplyAddress = process.env.AUTO_REPLY_TESTMAIL_EMAIL || notificationAddress;
 
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_SECURE,
+    service: 'gmail',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASSWORD,
