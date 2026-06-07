@@ -16,6 +16,7 @@ interface MatchData {
   date?: string; // 📅 어드민에서 입력한 date 필드 복구
   is_practice?: boolean;
   match_result?: string;
+  round_number?: number | null;
 }
 
 interface GoalData {
@@ -45,7 +46,7 @@ export default function MatchesPage() {
       const [matchesResult, goalsResult] = await Promise.all([
         supabase
           .from('matches')
-          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result')
+          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result,round_number')
           .order('id', { ascending: false }),
         supabase
           .from('match_goals')
@@ -170,6 +171,9 @@ export default function MatchesPage() {
               
               // ⚙️ 어드민 입력값을 그대로 쓰고, 비어있을 때만 기본 텍스트 처리
               const displayDate = match.date ? match.date.trim() : '날짜 미지정';
+              const displayRound = match.is_practice
+                ? '친선 매치'
+                : `DFL ${match.round_number || match.id}ROUND`;
 
               return (
                 <article key={match.id} className="group bg-[#0a0a0a] border border-gray-800/60 rounded-2xl shadow-lg hover:border-gray-500/50 hover:bg-[#111] transition-all duration-300 overflow-hidden">
@@ -189,7 +193,7 @@ export default function MatchesPage() {
                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded w-fit border ${
                       match.is_practice ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-blue-600/10 text-blue-400 border-blue-500/20'
                     }`}>
-                      {match.is_practice ? '친선 매치' : '공식 매치'}
+                      {displayRound}
                     </span>
                     <span className="text-[10px] text-gray-500 font-mono font-bold block sm:inline mt-1 sm:mt-0">
                       🗓️ {displayDate}
@@ -224,7 +228,7 @@ export default function MatchesPage() {
                     </div>
 
                     <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111]">
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch border-b border-white/10 bg-[#141414]">
+                      <div className="grid grid-cols-1 items-stretch border-b border-white/10 bg-[#141414] sm:grid-cols-[1fr_auto_1fr]">
                         <div className="flex min-w-0 items-center gap-3 p-4">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={currentHomeLogo} alt="Home Logo" className="h-10 w-10 shrink-0 rounded-full border border-white/10 bg-black object-contain p-0.5" onError={(e)=>{(e.target as HTMLImageElement).src=DEFAULT_HOME_LOGO}} />
@@ -234,13 +238,13 @@ export default function MatchesPage() {
                           </div>
                         </div>
 
-                        <div className="flex min-w-[96px] items-center justify-center border-x border-white/10 bg-black/50 px-4">
+                        <div className="order-first flex min-w-[96px] items-center justify-center border-b border-white/10 bg-black/50 px-4 py-4 sm:order-none sm:border-x sm:border-b-0 sm:py-0">
                           <span className="text-2xl font-black text-white">{match.home_score}</span>
                           <span className="mx-2 text-sm font-black text-gray-600">:</span>
                           <span className="text-2xl font-black text-white">{match.away_score}</span>
                         </div>
 
-                        <div className="flex min-w-0 items-center justify-end gap-3 p-4 text-right">
+                        <div className="flex min-w-0 items-center gap-3 p-4 sm:justify-end sm:text-right">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-black text-white">{match.away_team || '상대 팀'}</p>
                             <p className="text-[10px] font-bold text-gray-500">AWAY</p>
@@ -253,7 +257,25 @@ export default function MatchesPage() {
                       {matchGoals.length === 0 ? (
                         <p className="px-4 py-8 text-center text-xs font-bold text-gray-500">등록된 득점 기록이 없습니다.</p>
                       ) : (
-                        <div className="grid divide-y divide-white/10 sm:grid-cols-[1fr_auto_1fr] sm:divide-x sm:divide-y-0">
+                        <>
+                        <div className="space-y-2 p-4 sm:hidden">
+                          {matchGoals.map((goal) => (
+                            <div key={goal.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3">
+                              <span className="shrink-0 rounded-full bg-[#f2d272] px-2 py-0.5 text-[10px] font-black text-black">
+                                {goal.minute ? `${goal.minute}'` : '-'}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-black text-white">{goal.scorer_name}</p>
+                                <p className="text-[10px] font-bold text-gray-500">
+                                  {goal.team === 'away' ? match.away_team || '상대 팀' : match.home_team || 'Gabby UTD'}
+                                  {goal.note ? ` · ${goal.note}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="hidden sm:grid sm:grid-cols-[1fr_auto_1fr] sm:divide-x sm:divide-white/10">
                           <div className="space-y-2 p-4">
                             {homeGoals.length === 0 ? (
                               <p className="py-5 text-center text-xs text-gray-600">득점 기록 없음</p>
@@ -278,6 +300,7 @@ export default function MatchesPage() {
                             ))}
                           </div>
                         </div>
+                        </>
                       )}
                     </div>
                   </div>

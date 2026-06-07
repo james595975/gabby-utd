@@ -30,6 +30,16 @@ interface MatchData {
   recent_form?: string;
   is_practice?: boolean; 
   match_result?: string; 
+  round_number?: number | null;
+}
+
+interface GoalData {
+  id: number;
+  match_id: number;
+  scorer_name: string;
+  minute?: number | null;
+  team: 'home' | 'away';
+  note?: string | null;
 }
 
 interface NewsItem {
@@ -102,6 +112,12 @@ const PlayerDot = memo(function PlayerDot({ number, name, isGK = false }: Player
 function cleanLogoUrl(value: string | null | undefined, fallback: string) {
   const url = String(value || '').replace(/\s+/g, '').trim();
   return url.startsWith('http') ? url : fallback;
+}
+
+function formatGoalList(goals: GoalData[]) {
+  return goals
+    .map((goal) => `${goal.scorer_name}${goal.minute ? ` ${goal.minute}'` : ''}`)
+    .join(' · ');
 }
 
 const FORMATION_STYLES: Record<string, Record<number, { top: string; left: string }>> = {
@@ -230,6 +246,7 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [match, setMatch] = useState<MatchData | null>(null);
+  const [recentMatchGoals, setRecentMatchGoals] = useState<GoalData[]>([]);
   const [nextSchedule, setNextSchedule] = useState<ScheduleItem | null>(null);
 
   // 로딩 및 폼 상태 관리
@@ -300,11 +317,25 @@ export default function Home() {
       try {
         const { data, error } = await supabase
           .from('matches')
-          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result')
+          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result,round_number')
           .order('id', { ascending: false })
           .limit(1);
         if (data && data.length > 0 && !error) {
-          setMatch(data[0]);
+          const latestMatch = data[0];
+          setMatch(latestMatch);
+
+          const { data: goalData, error: goalError } = await supabase
+            .from('match_goals')
+            .select('id,match_id,scorer_name,minute,team,note')
+            .eq('match_id', latestMatch.id)
+            .order('minute', { ascending: true, nullsFirst: false })
+            .order('id', { ascending: true });
+
+          if (!goalError && goalData) {
+            setRecentMatchGoals(goalData);
+          }
+        } else {
+          setRecentMatchGoals([]);
         }
       } catch (e) {
         console.error("Match data fetch error on home:", e);
@@ -601,9 +632,16 @@ export default function Home() {
   const displayHomeScore = match !== null ? match.home_score : 0;
   const displayAwayScore = match !== null ? match.away_score : 0;
   const displayDate = match?.date || '최근 경기 기록';
+  const displayMatchTitle = match?.is_practice
+    ? 'FRIENDLY MATCH'
+    : match
+      ? `DFL ${match.round_number || match.id}ROUND`
+      : 'MATCH RESULT';
 
   const homeLogoUrl = match?.home_logo && match.home_logo.startsWith('http') ? match.home_logo.trim() : DEFAULT_HOME_LOGO;
   const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;
+  const homeScorers = recentMatchGoals.filter((goal) => goal.team !== 'away');
+  const awayScorers = recentMatchGoals.filter((goal) => goal.team === 'away');
 
   const tem_logo = homeLogoUrl;
   const displayScheduleDate = nextSchedule?.match_date
@@ -943,61 +981,72 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="relative bg-gradient-to-r from-[#1a233a]/80 via-[#050505] to-[#3b1028]/80 rounded-3xl border border-gray-700/50 shadow-2xl overflow-hidden backdrop-blur-sm">
-            <div className="absolute top-4 left-4 z-20">
-              <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow ${
-                match?.is_practice ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'
-              }`}>
-                {match?.is_practice ? '연습경기' : '공식매치'}
-              </span>
-            </div>
-
-            <div className="absolute top-4 right-4 z-20">
-              <span className={`text-[10px] sm:text-xs font-black tracking-widest px-3 py-1 rounded-md shadow border ${
-                match?.match_result === '패배' ? 'bg-red-600/30 text-red-400 border-red-500/40' : 
-                match?.match_result === '무승부' ? 'bg-gray-600/30 text-gray-300 border-gray-500/40' :
-                'bg-green-600/30 text-green-400 border-green-500/40'
-              }`}>
-                {match?.match_result || '승리'}
-              </span>
-            </div>
-
-            <div className="bg-black/40 text-center py-3 text-xs sm:text-sm font-bold text-gray-300 tracking-widest border-b border-white/5 relative z-10">
-              📅 {displayDate}
-            </div>
-
+          <div className="relative overflow-hidden rounded-3xl border border-gray-700/50 bg-[#1e1e1f] shadow-2xl">
             {matchLoading ? (
               <div className="text-center py-12 text-sm text-gray-400 relative z-10">경기 데이터를 분석 중입니다...</div>
+            ) : match ? (
+              <div className="relative z-10">
+                <div className="flex items-center justify-between px-5 py-4 text-xs font-black text-gray-300 sm:px-7">
+                  <span>
+                    {match?.is_practice ? '친선 매치' : '공식 매치'} · {displayDate}
+                  </span>
+                  <span className="text-gray-100">경기 종료</span>
+                </div>
+
+                <div className="px-5 pb-2 text-center sm:px-7">
+                  <p className="text-xl font-black tracking-[0.14em] text-white sm:text-2xl">
+                    {displayMatchTitle}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pb-5 pt-3 sm:px-10 sm:pb-7">
+                  <div className="flex min-w-0 flex-col items-center text-center">
+                    <div className="mb-3 h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-black/30 sm:h-16 sm:w-16">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={homeLogoUrl} className="h-full w-full object-cover p-1" alt="Home Team" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }} />
+                    </div>
+                    <span className="w-full truncate text-sm font-black text-white sm:text-base">{displayHomeTeam}</span>
+                  </div>
+
+                  <div className="flex min-w-[120px] flex-col items-center px-3 text-center">
+                    <div className="flex items-center gap-5 font-mono">
+                      <span className="text-4xl font-black text-white sm:text-5xl">{displayHomeScore}</span>
+                      <span className="text-2xl font-black text-gray-400">-</span>
+                      <span className="text-4xl font-black text-white sm:text-5xl">{displayAwayScore}</span>
+                    </div>
+                    <span className={`mt-3 rounded-md border px-2.5 py-1 text-[10px] font-black ${
+                      match?.match_result === '패배' ? 'border-red-500/30 bg-red-500/10 text-red-300' :
+                      match?.match_result === '무승부' ? 'border-gray-500/30 bg-gray-500/10 text-gray-300' :
+                      'border-green-500/30 bg-green-500/10 text-green-300'
+                    }`}>
+                      {match?.match_result || '경기 결과'}
+                    </span>
+                  </div>
+
+                  <div className="flex min-w-0 flex-col items-center text-center">
+                    <div className="mb-3 h-14 w-14 overflow-hidden rounded-full border border-white/10 bg-black/30 sm:h-16 sm:w-16">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={awayLogoUrl} className="h-full w-full object-cover p-1" alt="Away Team" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AWAY_LOGO; }} />
+                    </div>
+                    <span className="w-full truncate text-sm font-black text-white sm:text-base">{displayAwayTeam}</span>
+                  </div>
+                </div>
+
+                {recentMatchGoals.length > 0 && (
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center border-t border-white/10 bg-black/15 px-5 py-3 text-[11px] font-bold text-gray-300 sm:px-7">
+                    <p className="min-w-0 truncate text-left">
+                      {homeScorers.length > 0 ? formatGoalList(homeScorers) : ''}
+                    </p>
+                    <span className="px-4 text-xs text-white/80">⚽</span>
+                    <p className="min-w-0 truncate text-right">
+                      {awayScorers.length > 0 ? formatGoalList(awayScorers) : ''}
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="flex items-center justify-between px-4 sm:px-12 py-12 relative z-10">
-                <div className="flex flex-col items-center w-5/12 text-center">
-                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-[#0a0a0a] border border-gray-600 flex items-center justify-center overflow-hidden mb-4 shadow-[0_0_20px_rgba(26,35,58,0.8)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={homeLogoUrl} className="w-full h-full object-cover p-1" alt="Home Team" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_HOME_LOGO; }} />
-                  </div>
-                  <span className="font-black text-base sm:text-xl text-white tracking-wide truncate w-full">{displayHomeTeam}</span>
-                  <span className="text-[#f2d272] text-[10px] sm:text-xs font-bold mt-1">HOME</span>
-                </div>
-
-                <div className="flex flex-col items-center justify-center w-2/12 min-w-[80px]">
-                  <div className="flex items-center justify-center gap-2 sm:gap-3 bg-black/60 px-3 py-2 sm:px-4 sm:py-3 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl">
-                    <span className="text-2xl sm:text-4xl font-black text-white">{displayHomeScore}</span>
-                    <span className="text-lg font-bold text-gray-500">:</span>
-                    <span className="text-2xl sm:text-4xl font-black text-white">{displayAwayScore}</span>
-                  </div>
-                  <div className="mt-3 w-8 h-8 sm:w-10 sm:h-10 bg-[#f2d272] rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(242,210,114,0.4)] text-black font-black text-xs sm:text-sm italic">
-                    VS
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center w-5/12 text-center">
-                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-[#0a0a0a] border border-gray-600 flex items-center justify-center overflow-hidden mb-4 shadow-[0_0_20px_rgba(59,16,40,0.8)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={awayLogoUrl} className="w-full h-full object-cover p-1" alt="Away Team" onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_AWAY_LOGO; }} />
-                  </div>
-                  <span className="font-black text-base sm:text-xl text-white tracking-wide truncate w-full">{displayAwayTeam}</span>
-                  <span className="text-gray-400 text-[10px] sm:text-xs font-bold mt-1">AWAY</span>
-                </div>
+              <div className="px-4 py-12 text-center text-sm text-gray-400">
+                등록된 경기 결과가 없습니다.
               </div>
             )}
           </div>
