@@ -851,11 +851,11 @@ export default function Home() {
             <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">금주 선발 라인업</h2>
           </div>
           <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative flex flex-col items-center justify-center min-h-[480px] sm:min-h-[580px] w-full overflow-hidden py-12">
-            <div aria-hidden className="absolute inset-4 rounded-2xl border border-emerald-400/15 bg-[linear-gradient(90deg,rgba(16,185,129,0.06)_0_10%,transparent_10%_20%,rgba(16,185,129,0.045)_20%_30%,transparent_30%_40%,rgba(16,185,129,0.05)_40%_50%,transparent_50%_60%,rgba(16,185,129,0.045)_60%_70%,transparent_70%_80%,rgba(16,185,129,0.06)_80%_90%,transparent_90%_100%)]" />
-            <div aria-hidden className="absolute left-8 right-8 top-1/2 h-px bg-emerald-300/15" />
-            <div aria-hidden className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-300/15 sm:h-32 sm:w-32" />
-            <div aria-hidden className="absolute left-1/2 top-4 h-24 w-40 -translate-x-1/2 rounded-b-2xl border-x border-b border-emerald-300/15 sm:w-56" />
-            <div aria-hidden className="absolute bottom-4 left-1/2 h-24 w-40 -translate-x-1/2 rounded-t-2xl border-x border-t border-emerald-300/15 sm:w-56" />
+            <div aria-hidden className="absolute inset-4 rounded-2xl border border-emerald-300/35 bg-[linear-gradient(90deg,rgba(16,185,129,0.14)_0_10%,rgba(5,20,12,0.18)_10%_20%,rgba(16,185,129,0.11)_20%_30%,rgba(5,20,12,0.2)_30%_40%,rgba(16,185,129,0.13)_40%_50%,rgba(5,20,12,0.18)_50%_60%,rgba(16,185,129,0.11)_60%_70%,rgba(5,20,12,0.2)_70%_80%,rgba(16,185,129,0.14)_80%_90%,rgba(5,20,12,0.18)_90%_100%)]" />
+            <div aria-hidden className="absolute left-8 right-8 top-1/2 h-px bg-emerald-200/35" />
+            <div aria-hidden className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-200/35 sm:h-32 sm:w-32" />
+            <div aria-hidden className="absolute left-1/2 top-4 h-24 w-40 -translate-x-1/2 rounded-b-2xl border-x border-b border-emerald-200/35 sm:w-56" />
+            <div aria-hidden className="absolute bottom-4 left-1/2 h-24 w-40 -translate-x-1/2 rounded-t-2xl border-x border-t border-emerald-200/35 sm:w-56" />
             {lineupDots.map((dot) => (
               <div
                 key={dot.spotId}
