@@ -16,6 +16,7 @@ interface MatchItem {
   date?: string;
   is_practice?: boolean;
   match_result?: string;
+  round_number?: number | null;
 }
 
 interface NewsItem {
@@ -104,6 +105,7 @@ const defaultMatch = {
   is_practice: false,
   match_result: '승리',
   date: today(),
+  round_number: '',
 };
 
 const defaultNews = {
@@ -275,6 +277,7 @@ export default function AdminPage() {
       is_practice: Boolean(item.is_practice),
       match_result: item.match_result || '무승부',
       date: item.date || today(),
+      round_number: item.round_number ?? '',
     });
   }
 
@@ -363,7 +366,10 @@ export default function AdminPage() {
                     <Field label="홈 점수"><Input type="number" value={matchForm.home_score} onChange={(v) => setMatchForm({ ...matchForm, home_score: Number(v) })} /></Field>
                     <Field label="원정 점수"><Input type="number" value={matchForm.away_score} onChange={(v) => setMatchForm({ ...matchForm, away_score: Number(v) })} /></Field>
                   </div>
-                  <Field label="날짜"><Input type="date" value={matchForm.date} onChange={(v) => setMatchForm({ ...matchForm, date: v })} /></Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="날짜"><Input type="date" value={matchForm.date} onChange={(v) => setMatchForm({ ...matchForm, date: v })} /></Field>
+                    <Field label="DFL 라운드"><Input type="number" value={matchForm.round_number} onChange={(v) => setMatchForm({ ...matchForm, round_number: v === '' ? '' : Number(v) })} /></Field>
+                  </div>
                   <Field label="결과">
                     <select value={String(matchForm.match_result)} onChange={(e) => setMatchForm({ ...matchForm, match_result: e.target.value })} className={selectClass}>
                       <option>승리</option><option>무승부</option><option>패배</option>
@@ -410,7 +416,9 @@ export default function AdminPage() {
                       <Row key={match.id}>
                         <div>
                           <p className="text-sm font-black">{match.home_team || 'Gabby UTD'} {match.home_score} : {match.away_score} {match.away_team || '상대 팀'}</p>
-                          <p className="text-xs text-gray-500 mt-1">{match.date || '-'} · {match.match_result || '무승부'} · {match.is_practice ? '친선전' : '공식전'}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {match.date || '-'} · {match.match_result || '무승부'} · {match.is_practice ? '친선전' : `DFL ${match.round_number || match.id}ROUND`}
+                          </p>
                           {goals.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-2">
                               {goals.map((goal) => (

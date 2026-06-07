@@ -16,6 +16,7 @@ interface MatchData {
   date?: string; // 📅 어드민에서 입력한 date 필드 복구
   is_practice?: boolean;
   match_result?: string;
+  round_number?: number | null;
 }
 
 interface GoalData {
@@ -45,7 +46,7 @@ export default function MatchesPage() {
       const [matchesResult, goalsResult] = await Promise.all([
         supabase
           .from('matches')
-          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result')
+          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result,round_number')
           .order('id', { ascending: false }),
         supabase
           .from('match_goals')
@@ -170,6 +171,9 @@ export default function MatchesPage() {
               
               // ⚙️ 어드민 입력값을 그대로 쓰고, 비어있을 때만 기본 텍스트 처리
               const displayDate = match.date ? match.date.trim() : '날짜 미지정';
+              const displayRound = match.is_practice
+                ? '친선 매치'
+                : `DFL ${match.round_number || match.id}ROUND`;
 
               return (
                 <article key={match.id} className="group bg-[#0a0a0a] border border-gray-800/60 rounded-2xl shadow-lg hover:border-gray-500/50 hover:bg-[#111] transition-all duration-300 overflow-hidden">
@@ -189,7 +193,7 @@ export default function MatchesPage() {
                     <span className={`text-[9px] font-bold px-2 py-0.5 rounded w-fit border ${
                       match.is_practice ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-blue-600/10 text-blue-400 border-blue-500/20'
                     }`}>
-                      {match.is_practice ? '친선 매치' : '공식 매치'}
+                      {displayRound}
                     </span>
                     <span className="text-[10px] text-gray-500 font-mono font-bold block sm:inline mt-1 sm:mt-0">
                       🗓️ {displayDate}

@@ -30,6 +30,7 @@ interface MatchData {
   recent_form?: string;
   is_practice?: boolean; 
   match_result?: string; 
+  round_number?: number | null;
 }
 
 interface GoalData {
@@ -316,7 +317,7 @@ export default function Home() {
       try {
         const { data, error } = await supabase
           .from('matches')
-          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result')
+          .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result,round_number')
           .order('id', { ascending: false })
           .limit(1);
         if (data && data.length > 0 && !error) {
@@ -631,7 +632,11 @@ export default function Home() {
   const displayHomeScore = match !== null ? match.home_score : 0;
   const displayAwayScore = match !== null ? match.away_score : 0;
   const displayDate = match?.date || '최근 경기 기록';
-  const displayMatchTitle = match?.is_practice ? 'FRIENDLY MATCH' : match ? `DFL ${match.id}ROUND` : 'MATCH RESULT';
+  const displayMatchTitle = match?.is_practice
+    ? 'FRIENDLY MATCH'
+    : match
+      ? `DFL ${match.round_number || match.id}ROUND`
+      : 'MATCH RESULT';
 
   const homeLogoUrl = match?.home_logo && match.home_logo.startsWith('http') ? match.home_logo.trim() : DEFAULT_HOME_LOGO;
   const awayLogoUrl = match?.away_logo && match.away_logo.startsWith('http') ? match.away_logo.trim() : DEFAULT_AWAY_LOGO;

@@ -79,6 +79,7 @@ function sanitizeResourcePayload(resource: Resource, payload: Record<string, unk
       is_practice: Boolean(payload.is_practice),
       match_result: String(payload.match_result || '무승부'),
       date: String(payload.date || '').trim() || new Date().toISOString().slice(0, 10),
+      round_number: payload.round_number === '' || payload.round_number == null ? null : Number(payload.round_number),
     };
   }
 
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
   const [matches, matchGoals, schedules, news, players, messages] = await Promise.all([
     context.supabase
       .from('matches')
-      .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result')
+      .select('id,home_team,away_team,home_score,away_score,home_logo,away_logo,date,is_practice,match_result,round_number')
       .order('id', { ascending: false }),
     context.supabase
       .from('match_goals')
