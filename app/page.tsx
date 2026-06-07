@@ -71,13 +71,13 @@ interface PlayerDotProps {
 
 const PlayerDot = memo(function PlayerDot({ number, name, isGK = false }: PlayerDotProps) {
   return (
-    <div className="flex flex-col items-center justify-center space-y-1.5">
+    <div className="flex flex-col items-center justify-center space-y-1.5 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
       {/* 🔴 등번호가 들어가는 원형 마커 (크기 확대: w-8 h-8 -> w-10 h-10) */}
       <div 
-        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-mono font-black border-2 ${
+        className={`w-10 h-10 rounded-full flex items-center justify-center font-mono font-black border-2 transition-transform duration-300 hover:scale-110 ${
           isGK 
-            ? 'bg-amber-500 text-black border-amber-300' 
-            : 'bg-green-500 text-white border-green-300'
+            ? 'bg-amber-500 text-black border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)]' 
+            : 'bg-green-500 text-white border-green-300 shadow-[0_0_15px_rgba(34,197,94,0.5)]'
         }`}
       >
         {/* 🔢 등번호 글자 크기 확대 (text-xs -> text-sm ~ base) */}
@@ -88,7 +88,7 @@ const PlayerDot = memo(function PlayerDot({ number, name, isGK = false }: Player
 
       {/* 🏃 선수 이름 레이블 박스 (폰트 크기 및 패딩 대폭 확대) */}
       {name && (
-        <div className="bg-black/90 border border-gray-700/60 px-2 py-1 sm:px-2.5 rounded-md max-w-[76px] sm:max-w-[120px] truncate text-center">
+        <div className="bg-black/85 border border-gray-700/60 px-2.5 py-1 rounded-md max-w-[90px] sm:max-w-[120px] truncate text-center backdrop-blur-sm">
           {/* 🔤 이름 글자 크기 확대 (text-[10px] -> text-xs ~ sm) */}
           <span className="block text-xs sm:text-sm font-black text-gray-100 tracking-tight whitespace-nowrap truncate">
             {name}
@@ -844,13 +844,13 @@ export default function Home() {
       </section>
 
       {/* ⚽ 3.5. 선발 라인업 스쿼드 전술판 섹션 */}
-      <section id="lineup" className="bg-[#050505] w-full py-20 border-t border-gray-800/30 relative z-10 [content-visibility:auto] [contain-intrinsic-size:760px]">
+      <section id="lineup" className="bg-[#050505] w-full py-20 border-t border-gray-800/30 relative z-10">
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-8 text-center sm:text-left">
             <span className="text-[10px] text-green-400 font-mono font-bold block uppercase tracking-widest">Starting Lineup</span>
             <h2 className="text-2xl sm:text-3xl font-black text-gray-100 mt-1">금주 선발 라인업</h2>
           </div>
-          <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-5 sm:p-6 relative flex flex-col items-center justify-center min-h-[440px] sm:min-h-[580px] w-full overflow-hidden py-10 sm:py-12 [contain:layout_paint_style]">
+          <div className="bg-[#070b08] border border-green-900/40 rounded-3xl p-6 shadow-2xl relative flex flex-col items-center justify-center min-h-[480px] sm:min-h-[580px] w-full overflow-hidden py-12">
             {lineupDots.map((dot) => (
               <div
                 key={dot.spotId}
@@ -858,7 +858,8 @@ export default function Home() {
                   position: 'absolute',
                   top: dot.coords.top,
                   left: dot.coords.left,
-                  transform: 'translate3d(-50%, -50%, 0)',
+                  transform: 'translate(-50%, -50%)',
+                  transition: 'top 0.35s ease, left 0.35s ease',
                 }}
               >
                 <PlayerDot
