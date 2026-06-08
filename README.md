@@ -39,7 +39,7 @@ Inquiry emails are sent through Gmail SMTP, then captured in the Testmail namesp
 ```bash
 SMTP_USER=your_gmail_address
 SMTP_PASSWORD=your_gmail_app_password
-SMTP_FROM_EMAIL=your_gmail_address
+SMTP_FROM_EMAIL=sc31e.admin@inbox.testmail.app
 TESTMAIL_NAMESPACE=sc31e
 INQUIRY_NOTIFICATION_EMAIL=sc31e.admin@inbox.testmail.app
 AUTO_REPLY_TESTMAIL_EMAIL=sc31e.admin@inbox.testmail.app
@@ -47,7 +47,7 @@ AUTO_REPLY_TESTMAIL_EMAIL=sc31e.admin@inbox.testmail.app
 
 If `INQUIRY_NOTIFICATION_EMAIL` is omitted, admin notifications default to `sc31e.admin@inbox.testmail.app`. If `AUTO_REPLY_TESTMAIL_EMAIL` is omitted, auto-replies are sent to the same Testmail admin inbox.
 
-Use a Gmail app password for `SMTP_PASSWORD`. SMTP credentials must stay server-only. Do not prefix them with `NEXT_PUBLIC_`.
+Use a Gmail app password for `SMTP_PASSWORD`. To use `sc31e.admin@inbox.testmail.app` as `SMTP_FROM_EMAIL`, add it as a verified "send mail as" alias in the Gmail account first. SMTP credentials must stay server-only. Do not prefix them with `NEXT_PUBLIC_`.
 
 ## Learn More
 

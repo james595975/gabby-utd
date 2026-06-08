@@ -182,8 +182,8 @@ export async function sendInquiryEmail(data: EmailData) {
     };
   }
 
-  const fromAddress = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
   const notificationAddress = process.env.INQUIRY_NOTIFICATION_EMAIL || getTestmailAddress('admin');
+  const fromAddress = process.env.SMTP_FROM_EMAIL || notificationAddress;
   const autoReplyAddress = process.env.AUTO_REPLY_TESTMAIL_EMAIL || notificationAddress;
 
   const transporter = nodemailer.createTransport({
