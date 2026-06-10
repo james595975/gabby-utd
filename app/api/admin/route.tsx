@@ -6,7 +6,7 @@ const loginAttempts = new Map<string, { count: number; timestamp: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_TIME = 5 * 60 * 1000;
 const SESSION_MAX_AGE_SECONDS = 30 * 60;
-const ADMIN_UID = process.env.ADMIN_USER_UID || 'c348daeb-51f9-4347-a3b9-6470085ef190';
+const ADMIN_UID = process.env.ADMIN_USER_UID;
 
 function getClientIP(request: NextRequest): string {
   const forwardedFor = request.headers.get('x-forwarded-for');
